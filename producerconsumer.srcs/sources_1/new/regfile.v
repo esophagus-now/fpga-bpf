@@ -1,31 +1,18 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 07/27/2019 11:13:33 AM
-// Design Name: 
-// Module Name: regfile
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-
-
 /*
-reg [31:0] scratch [0:15];
-wire [3:0] scratch_addr;
-assign scratch_addr = imm[3:0];
-wire [31:0] scratch_odata;
-wire [31:0] scratch_idata;
+
+regfile.v
+
+The BPF VM defines "scratch memory" where you can load and store values (in addition
+to being able to load data from the packet itself). This is basically a fancy way of
+saying a "register file", so that's what this module implements.
+
+Note that I (intentionally) use asynchronous reads (and synchronous writes). First,
+this is the behaviour I wanted, and also, I have confirmed that Vivado synthesis this
+as LUT RAM.
+
+This module is instantiated as part of bpfvm_datapath.
+
 */
 
 module regfile(

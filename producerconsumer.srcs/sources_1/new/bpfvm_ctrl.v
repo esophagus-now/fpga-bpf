@@ -1,23 +1,12 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 07/19/2019 11:00:32 AM
-// Design Name: 
-// Module Name: bpfvm_ctrl
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
+/*
+
+bpfvm_ctrl.v
+
+This (unfinished, some would say unstarted) module implements the FSM that drives the
+BPF processor. Most of its outputs control the bpfvm_dapath module.
+
+*/
 
 
 module bpfvm_ctrl(

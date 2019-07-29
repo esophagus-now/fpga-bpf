@@ -1,23 +1,14 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 07/27/2019 11:08:27 AM
-// Design Name: 
-// Module Name: alu
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
+/*
+
+alu.v
+
+A simple ALU designed to match the needs of the BPF VM. I have not confirmed if all the
+operations can run in a single cycle. If they can't, I need to do a little extra work in
+the bpfvm_ctrl mdoule.
+
+This module is instantiated as part of bpfvm_datapath. 
+*/
 
 
 module alu(

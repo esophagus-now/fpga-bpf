@@ -1,23 +1,13 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 07/29/2019 09:58:30 AM
-// Design Name: 
-// Module Name: packetramtb
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
+/*
+
+packetramtb.sv
+
+This testbench checks the functionality of packetram.v. It verifies the correct "read
+first" behaviour, checks that the enable signals do what they should, and of course
+checks that it acts as memory.
+
+*/
 
 event test_writes, test_writes_done;
 event test_enabled_reads, test_enabled_reads_done;

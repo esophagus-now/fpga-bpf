@@ -88,36 +88,34 @@ modified to match Verilog's syntax
 `define		PC_SEL_PLUS_JF	2'b10
 `define		PC_SEL_PLUS_IMM	2'b11
 
+//I use logic where I intend a combinational signal, but I need to
+//use reg to make Verilog's compiler happy
+`define logic reg
+
 module bpfvm_ctrl(
     input wire rst,
     input wire clk,
-    output logic [2:0] A_sel,
-    output logic [2:0] X_sel,
-    output logic [1:0] PC_sel,
-    output logic addr_sel,
-    output logic A_en,
-    output logic X_en,
-    output logic IR_en,
-    output logic PC_en,
-    output logic PC_rst,
-    output logic B_sel,
-    output logic [3:0] ALU_sel,
-    //output wire [63:0] inst_mem_data,
-    //output wire [63:0] packet_data, //This will always get padded to 64 bits
+    output `logic [2:0] A_sel,
+    output `logic [2:0] X_sel,
+    output `logic [1:0] PC_sel,
+    output `logic addr_sel,
+    output `logic A_en,
+    output `logic X_en,
+    output `logic PC_en,
+    output `logic PC_rst,
+    output wire B_sel,
+    output wire [3:0] ALU_sel,
     output wire [63:0] packet_len,
-    output logic regfile_wr_en,
-    output logic regfile_sel,
+    output `logic regfile_wr_en,
+    output `logic regfile_sel,
     input wire [15:0] opcode,
     input wire set,
     input wire eq,
     input wire gt,
     input wire ge,
-    //input wire [31:0] packet_addr,
-    //input wire [31:0] PC
-    output logic [3:0] state_out, //just to see it in the schematic
-    output logic packet_mem_rd_en,
-    output logic inst_mem_rd_en,
-    output logic [1:0] transfer_sz //TODO: should this be in the datapath instead?
+    output `logic packet_mem_rd_en,
+    output `logic inst_mem_rd_en,
+    output wire [1:0] transfer_sz //TODO: should this be in the datapath instead?
     );
 
 //These are named subfields of the opcode
@@ -141,11 +139,13 @@ reg [4:0] delay_count; //TODO: replace this with better logic
 //This is used to wait for the ALU to finish long operations
 
 //State encoding. Does Vivado automatically re-encode these for better performance?
-enum logic[3:0] {fetch, decode, write_to_A, write_to_X, countdown} dest_state_after_countdown;
+parameter fetch = 0, decode = 1, write_to_A = 2, write_to_X = 3, countdown = 4; 
+
+reg [2:0] dest_state_after_countdown;
 
 reg [3:0] state; //This should be big enough
 initial state = fetch;
-logic [1:0] next_state;
+`logic [1:0] next_state;
 
 always @(posedge clk) begin
     //TODO: reset logic
@@ -327,7 +327,7 @@ always @(*) begin
 			next_state = fetch;
 		end countdown: begin
 			//This is used to wait for long ALU operations
-			delay_count--;
+			delay_count = delay_count - 1;
 			if (delay_count == 0) begin
 				next_state = dest_state_after_countdown;
 			end
@@ -335,7 +335,6 @@ always @(*) begin
 	endcase
 end    
 
-assign state_out = state;
 assign packet_len = 0; //TODO: update this when I figure out where to get the info
 
 endmodule

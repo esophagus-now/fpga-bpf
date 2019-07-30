@@ -11,6 +11,12 @@ This testbench verifies the functionality of packetmem.v.
 
 module packetmemtb();
 
+
+`define		BPF_W		2'b00 //Word, half-word, and byte
+`define		BPF_H		2'b01
+`define		BPF_B		2'b10
+
+
 `define DATA_WIDTH 32
 `define BYTE_ADDR_WIDTH 12 
 `define ADDR_WIDTH 10
@@ -80,19 +86,16 @@ initial begin
         @(negedge clk);
         rd_en <= 1;
         rd_addr <= 0;
-        sz <= 2'b10; //For 32 bit read
+        sz <= `BPF_W; //For 32 bit read
         @(negedge clk);
         rd_addr <= 1;
         @(negedge clk);
         rd_addr <= 2;
         @(negedge clk);
-        sz <= 2'b00; //8 bit read
-        //OH SHOOT! I made a mistake!
-        //This is going to grab the last 8 bits of the 32 bit word at byte address 2,
-        //not the byte at byte address 2...
+        sz <= `BPF_B; //8 bit read
         @(negedge clk);
         rd_addr <= 3;
-        sz <= 2'b01; //16 bit read
+        sz <= `BPF_H; //16 bit read
         @(negedge clk);
         rd_en <= 0;
         ->read_vals_done;

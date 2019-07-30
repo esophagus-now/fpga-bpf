@@ -41,16 +41,16 @@ module bpfvm_datapath(
     output wire gt,
     output wire ge,
     output wire [31:0] packet_addr,
-    output reg [31:0] nextPC, //This better not be a (clocked) register!
-    output wire [63:0] IR, //This is just to see it in the schematic
-    output wire inst_mem_RD_en, //This is just to see it in the schematic
-    output wire packet_RD_en //This is just to see it in the schematic
+    output reg [31:0] nextPC //This better not be a (clocked) register!
+    //output wire [63:0] IR, //This is just to see it in the schematic
+    //output wire inst_mem_RD_en, //This is just to see it in the schematic
+    //output wire packet_RD_en //This is just to see it in the schematic
 );
 
 reg [31:0] A, X; //A is the accumulator, X is the auxiliary register
 wire [31:0] B; //ALU's second operand
 wire [31:0] ALU_out;
-//reg [63:0] IR;  //Instruction register
+wire [63:0] IR;  //Instruction register
 assign IR = inst_mem_data;
 
 reg [31:0] PC = 0; //I think this is the only initial value that matters

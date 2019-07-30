@@ -19,7 +19,7 @@ module alu(
     output wire set,
     output wire eq,
     output wire gt,
-    output wire zero
+    output wire ge
 );
 
 always @(ALU_sel, A, B) begin
@@ -53,10 +53,9 @@ always @(ALU_sel, A, B) begin
     endcase
 end
 
-
-assign zero = (32'b0 == A) ? 1'b1 : 1'b0;
 assign eq = (A == B) ? 1'b1 : 1'b0;
 assign gt = (A > B) ? 1'b1 : 1'b0;
+assign ge = gt | eq;
 assign set = ((A & B) != 32'h00000000) ? 1'b1 : 1'b0;
 
 endmodule

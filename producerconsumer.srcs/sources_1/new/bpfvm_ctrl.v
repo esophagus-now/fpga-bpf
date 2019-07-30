@@ -64,6 +64,29 @@ modified to match Verilog's syntax
 //ALU operand B select
 `define		ALU_B_SEL_IMM	1'b0
 `define		ALU_B_SEL_X		1'b1
+//ALU operation select
+`define		BPF_ADD		4'b0000
+`define		BPF_SUB		4'b0001
+`define		BPF_MUL		4'b0010
+`define		BPF_DIV		4'b0011
+`define		BPF_OR		4'b0100
+`define		BPF_AND		4'b0101
+`define		BPF_LSH		4'b0110
+`define		BPF_RSH		4'b0111
+`define		BPF_NEG		4'b1000
+`define		BPF_MOD		4'b1001
+`define		BPF_XOR		4'b1010
+//Jump types
+`define		BPF_JA		3'b000
+`define		BPF_JEQ		3'b001
+`define		BPF_JGT		3'b010
+`define		BPF_JGE		3'b011
+`define		BPF_JSET	3'b100
+//PC value select
+`define		PC_SEL_PLUS_1	2'b00
+`define		PC_SEL_PLUS_JT	2'b01
+`define		PC_SEL_PLUS_JF	2'b10
+`define		PC_SEL_PLUS_IMM	2'b11
 
 module bpfvm_ctrl(
     input wire rst,
@@ -88,7 +111,7 @@ module bpfvm_ctrl(
     input wire set,
     input wire eq,
     input wire gt,
-    input wire zero,
+    input wire ge,
     //input wire [31:0] packet_addr,
     //input wire [31:0] PC
     output logic [3:0] state_out, //just to see it in the schematic
@@ -106,13 +129,22 @@ assign addr_type = opcode[7:5];
 assign transfer_sz = opcode[4:3]; //TODO: fix packetmem so the encodings work properly
 //wire B_sel;
 assign B_sel = opcode[3];
-wire [3:0] alu_sel;
+//wire [3:0] alu_sel;
+assign ALU_sel = opcode[7:4];
+//TODO: quadruple-check encodings match properly in the alu module
+wire [2:0] jmp_type;
+assign jmp_type = opcode[6:4];
+wire [4:0] miscop;
+assign miscop = opcode[7:3];
+
+reg [4:0] delay_count; //TODO: replace this with better logic
+//This is used to wait for the ALU to finish long operations
 
 //State encoding. Does Vivado automatically re-encode these for better performance?
-enum logic[3:0] {fetch, decode, write_to_A, write_to_X} dummy;
+enum logic[3:0] {fetch, decode, write_to_A, write_to_X, countdown} dest_state_after_countdown;
 
-reg [1:0] state; //This should be big enough
-initial state <= fetch;
+reg [3:0] state; //This should be big enough
+initial state = fetch;
 logic [1:0] next_state;
 
 always @(posedge clk) begin
@@ -127,7 +159,7 @@ always @(*) begin
 							//Note the use of the blocking assignment
 	case (state)
 		fetch: begin
-			PC_sel = 2'b00; //Select PC+1
+			PC_sel = `PC_SEL_PLUS_1; //Select PC+1
 			PC_en = 1'b1;   //Update PC
 			inst_mem_rd_en = 1'b1; //Enable reading from memory
 			
@@ -175,7 +207,7 @@ always @(*) begin
 					end
 					
 				end `BPF_LDX: begin //LDX
-									//Does this use the immediate, packet memory, scratch memory, or length?
+					//Does this use the immediate, packet memory, scratch memory, or length?
 					if (addr_type == `BPF_IMM) begin //immediate
 						X_sel = `X_SEL_IMM;
 						X_en = 1'b1;
@@ -227,14 +259,61 @@ always @(*) begin
 					
 					next_state = fetch;
 				end `BPF_ALU: begin //ALU
-					//So here have A op= [X|K], with the exception of the NOT operator
+					//Here we have A op= [X|K], with the exception of the NOT operator
+					//It so happens that ALU_sel and B_sel are already taken care of.
+					//The only thing I really want to do now is make sure enough clock
+					//cycles go by.
+					A_sel = `A_SEL_ALU;
 					
+					//Assume +,-,|,&,^ are single-cycle
+					//Assume <<, >>, *, /, % take 32 cycles
+					case (ALU_sel)
+						`BPF_ADD,`BPF_SUB, `BPF_OR, `BPF_AND, `BPF_XOR:
+							next_state = write_to_A;
+						default: begin
+							delay_count = 'd31;
+							dest_state_after_countdown = write_to_A;
+							
+							next_state = countdown;
+						end
+					endcase
 				end `BPF_JMP: begin //JMP
-				
+					//Except for JA, all the jump types use A and B in the ALU
+					//It so happens that B is already selected correctly, ctrl-f
+					//for "assign B_sel"
+					
+					//TODO: is the ALU ready on this clock cycle? What if I get
+					//timing violations?
+					if (jmp_type == `BPF_JA) begin
+						PC_sel = `PC_SEL_PLUS_IMM;
+					end else if (
+						(jmp_type == `BPF_JEQ && eq) ||
+						(jmp_type == `BPF_JGT && gt) ||
+						(jmp_type == `BPF_JGE && ge) ||
+						(jmp_type == `BPF_JSET && set)
+					) begin
+						PC_sel = `PC_SEL_PLUS_JT;
+					end else begin
+						PC_sel = `PC_SEL_PLUS_JF;
+					end
+					PC_en = 1'b1;
+					
+					next_state = fetch; //Is this OK?
 				end `BPF_RET: begin //RET
-				
+					//TODO: figure out how BPF VM signals that a packet is accepted or not
+					
+					next_state = fetch;
+					
 				end `BPF_MISC: begin //MISC
-				
+					if (miscop == 0) begin //TAX
+						X_sel = `X_SEL_A;
+						X_en = 1'b1;
+					end else begin //TXA
+						A_sel = `A_SEL_X;
+						A_en = 1'b1;
+					end
+					
+					next_state = fetch;
 				end
 			endcase
 			
@@ -246,6 +325,12 @@ always @(*) begin
 		end write_to_X: begin
 			X_en = 1'b1;
 			next_state = fetch;
+		end countdown: begin
+			//This is used to wait for long ALU operations
+			delay_count--;
+			if (delay_count == 0) begin
+				next_state = dest_state_after_countdown;
+			end
 		end
 	endcase
 end    

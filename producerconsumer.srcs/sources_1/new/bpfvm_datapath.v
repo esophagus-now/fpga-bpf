@@ -39,7 +39,7 @@ module bpfvm_datapath(
     output wire set,
     output wire eq,
     output wire gt,
-    output wire zero,
+    output wire ge,
     output wire [31:0] packet_addr,
     output reg [31:0] nextPC, //This better not be a (clocked) register!
     output wire [63:0] IR, //This is just to see it in the schematic
@@ -150,9 +150,9 @@ alu myalu (
     .B(B),
     .ALU_sel(ALU_sel),
     .ALU_out(ALU_out),
-    .zero(zero),
     .eq(eq),
     .gt(gt),
+    .ge(ge),
     .set(set)
     );
 

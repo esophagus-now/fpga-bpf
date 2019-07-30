@@ -3,11 +3,13 @@
 
 bpfvm_ctrl.v
 
+Note: I told Vivado to use the SystemVerilog compiler for this. I'm just causing myself
+a headache, aren't I?
+
 This (unfinished, some would say unstarted) module implements the FSM that drives the
 BPF processor. Most of its outputs control the bpfvm_dapath module.
 
 */
-
 
 module bpfvm_ctrl(
     input wire rst,
@@ -31,20 +33,48 @@ module bpfvm_ctrl(
     input wire set,
     input wire eq,
     input wire gt,
-    input wire zero//,
+    input wire zero,
     //input wire [31:0] packet_addr,
     //input wire [31:0] PC
+    output logic [3:0] state_out //just to see it in the schematic
     );
-    
-//Hmmmmm.... I'm not sure how to deal with external memory (i.e. external
-//to this module)
 
 //These are named subfields of the opcode
-//This should go in the state machine, not the datapath!
 wire [2:0] opcode_class;
 assign opcode_class = opcode[2:0];
 wire [1:0] transfer_sz;
 assign transfer_sz = opcode[4:3];
 wire [3:0] alu_sel;
+
+//State encoding. Does Vivado automatically re-encode these for better performance?
+enum logic[3:0] {fetch, s2, s3, s4} dummy;
+
+reg [1:0] state; //This should be big enough
+logic [1:0] next_state;
+initial begin
+    state <= fetch;
+end
+
+always @(posedge clk) begin
+    //TODO: reset logic
+    state <= next_state;
+end
     
+always @(*) begin
+	//Some quick dumb test to make sure I understand FSMs
+	case (state)
+		fetch:
+			//Ah, this is why next_state needs to be made "reg".
+			next_state = s2;
+		s2:
+			next_state = s3;
+		s3:
+			next_state = s4;
+		s4:
+			next_state = fetch;
+	endcase
+end    
+
+assign state_out = state;
+
 endmodule

@@ -24,7 +24,7 @@ This module instantiates two packetram modules as its ping and pong buffers.
 
 module packetmem#(parameter
     BYTE_ADDR_WIDTH = 12,
-    localparam ADDR_WIDTH = BYTE_ADDR_WIDTH - 2
+    localparam ADDR_WIDTH = BYTE_ADDR_WIDTH - 2 //This assumes that the memory is 32 bits wide
 )(
     input wire clk,
     //How many bits for the address width? Should that be a parameter?
@@ -42,9 +42,9 @@ module packetmem#(parameter
 
 //Round byte address down to (aligned) 32-bit word address 
 wire [9:0] addrA;
-assign addrA = (wr_en == 1'b1) ? wr_addr : rd_addr[11:2];
+assign addrA = (wr_en == 1'b1) ? wr_addr : rd_addr[BYTE_ADDR_WIDTH-1:2];
 wire [9:0] addrB;
-assign addrB = rd_addr + 1; //Port B is only used when performing 64 bit reads, so it's ok to
+assign addrB = rd_addr[BYTE_ADDR_WIDTH-1:2] + 1; //Port B is only used when performing 64 bit reads, so it's ok to
 //use rd_addr here. Anyway, it has less propagation delay, so I think it's better
 //(Note to self: this used to set addrB to be addrA+1)
 

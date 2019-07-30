@@ -106,8 +106,8 @@ always @(posedge clk) begin
                 X <= scratch_odata;
             3'b100:
                 X <= packet_len;
-            /*3'b101:
-                X <= 0; //TODO: what is that weird MSH thing?*/
+            3'b101:
+                X <= 0; //TODO: what is that weird MSH thing?
             3'b111: //for TAX instruction
                 X <= A;
             default:
@@ -139,9 +139,8 @@ always @(PC_sel, PC, jt, jf, imm) begin
 end
 
 //packet_addr mux
-assign packet_addr = (addr_sel == 1'b1) ? imm : (X+imm);
+assign packet_addr = (addr_sel == 1'b0) ? imm : (X+imm);
 //This should cover all the cases?
-//TODO: figure out how to deal with variable-size fetches
 
 //ALU operand B select
 assign B = (B_sel == 1'b1) ? X : imm;

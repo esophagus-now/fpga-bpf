@@ -15,6 +15,9 @@ packet. Of course, the buffers are switched when needed.
 
 This module instantiates two packetram modules as its ping and pong buffers.
 
+//TODO: fix offsetting into 64 bit word for 8- and 16-bit reads
+//TODO: fix logic so that it uses the proper encodings for the transfer size
+
 */
 
 

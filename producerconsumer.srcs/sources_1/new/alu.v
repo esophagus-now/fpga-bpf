@@ -5,7 +5,7 @@ alu.v
 
 A simple ALU designed to match the needs of the BPF VM. I have not confirmed if all the
 operations can run in a single cycle. If they can't, I need to do a little extra work in
-the bpfvm_ctrl mdoule.
+the bpfvm_ctrl module.
 
 This module is instantiated as part of bpfvm_datapath. 
 */

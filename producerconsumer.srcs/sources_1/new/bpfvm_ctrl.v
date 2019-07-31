@@ -92,6 +92,8 @@ modified to match Verilog's syntax
 //use reg to make Verilog's compiler happy
 `define logic reg
 
+`define STATE_WIDTH 4 //This should be big enough
+
 module bpfvm_ctrl(
     input wire rst,
     input wire clk,
@@ -139,13 +141,13 @@ reg [4:0] delay_count; //TODO: replace this with better logic
 //This is used to wait for the ALU to finish long operations
 
 //State encoding. Does Vivado automatically re-encode these for better performance?
-parameter fetch = 0, decode = 1, write_to_A = 2, write_to_X = 3, countdown = 4; 
+parameter fetch = 0, decode = 1, write_to_A = 2, write_to_X = 3, countdown = 4, reset = (2**`STATE_WIDTH-1); 
 
-reg [2:0] dest_state_after_countdown;
+reg [`STATE_WIDTH-1:0] state;
+initial state = reset;
+`logic [`STATE_WIDTH-1:0] next_state;
 
-reg [3:0] state; //This should be big enough
-initial state = fetch;
-`logic [1:0] next_state;
+reg [`STATE_WIDTH-1:0] dest_state_after_countdown;
 
 always @(posedge clk) begin
     //TODO: reset logic
@@ -153,12 +155,14 @@ always @(posedge clk) begin
 end
     
 always @(*) begin
-	{A_en, X_en, IR_en, PC_en, PC_rst,
+	{A_en, X_en, PC_en, PC_rst,
 	regfile_wr_en, packet_mem_rd_en, 
 	inst_mem_rd_en} = 0;	//Reset "dangerous" control bus lines to 0
 							//Note the use of the blocking assignment
 	case (state)
-		fetch: begin
+		reset: begin
+		next_state = fetch;
+	end fetch: begin
 			PC_sel = `PC_SEL_PLUS_1; //Select PC+1
 			PC_en = 1'b1;   //Update PC
 			inst_mem_rd_en = 1'b1; //Enable reading from memory
@@ -318,7 +322,7 @@ always @(*) begin
 			endcase
 			
 			//I think this is also an error
-			next_state = fetch;
+			//ERROR!
 		end write_to_A: begin
 			A_en = 1'b1;
 			next_state = fetch;

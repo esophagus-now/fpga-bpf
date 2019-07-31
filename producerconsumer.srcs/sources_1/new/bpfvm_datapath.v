@@ -15,7 +15,8 @@ fiddled with the verilog until the schematic matched my drawing.
 This "datapath" is intended to be controlled by the FSM defined in bpfvm_ctrl.v
 */
 
-
+//TODO: Make PC width a parameter, then do the complicated dance Xilinx forces me to
+//in order to update the IP packaged from the block diagram
 module bpfvm_datapath(
     input wire rst,
     input wire clk,
@@ -41,7 +42,7 @@ module bpfvm_datapath(
     output wire gt,
     output wire ge,
     output wire [31:0] packet_addr,
-    output reg [31:0] nextPC //This better not be a (clocked) register!
+    output reg [31:0] PC = 0
     //output wire [63:0] IR, //This is just to see it in the schematic
     //output wire inst_mem_RD_en, //This is just to see it in the schematic
     //output wire packet_RD_en //This is just to see it in the schematic
@@ -53,7 +54,7 @@ wire [31:0] ALU_out;
 wire [63:0] IR;  //Instruction register
 assign IR = inst_mem_data;
 
-reg [31:0] PC = 0; //I think this is the only initial value that matters
+reg [31:0] nextPC = 0; //This better not be a (clocked) register!
 
 wire [7:0] jt, jf; //These are named subfields of the IR value
 wire [31:0] imm;

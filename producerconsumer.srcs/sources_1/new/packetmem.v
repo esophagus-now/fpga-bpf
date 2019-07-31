@@ -29,7 +29,7 @@ This module instantiates two packetram modules as its ping and pong buffers.
 
 module packetmem#(parameter
     BYTE_ADDR_WIDTH = 12,
-    localparam ADDR_WIDTH = BYTE_ADDR_WIDTH - 2 //This assumes that the memory is 32 bits wide
+    ADDR_WIDTH = BYTE_ADDR_WIDTH - 2 //This assumes that the memory is 32 bits wide
 )(
     input wire clk,
     //How many bits for the address width? Should that be a parameter?

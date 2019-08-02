@@ -26,4 +26,20 @@ Eventually, eBPF (extended BPF) was added to Linux, and [there are some really i
 
 This project essentially builds a soft CPU for FPGAs which runs BPF as its native instruction set. This is part of a larger effort to make FPGAs easier to debug. One of my short-term goals is to make it possible to use Wireshark on arbitrary connections in your FPGA design.
 
-The repository is not super organized right now, but I've left some comments at the start of each file. Also, I've drawn a few diagrams which I'll find some nice way to upload (probably using github's wiki feature, which I haven't figured out how to use yet).
+The repository is not super organized right now, but I've left some comments at the start of each file. Also, I've drawn a few diagrams which I've uploaded to the wiki for this repo. One of them shows how all the different Verilog files are supposed to work together, which you should find helpful.
+
+## What I'm working on right now
+
+- Updating `packetmem.v` to do ping/pong buffering. I may change `packetram.v` in consequence
+- Creating the round-robin arbiter to "drain" accepted packets. I call this _forwarding_ the packet
+- Creating some "snoopers"
+- Adding all the proper "pipelining" signals to the BPF CPU, packet memory, snoopers, and drainer
+- Figuring out how to deal with multi-cycle operations in the ALU. I notice that the [zipCPU](https://zipcpu.com/) actually writes its own divider and multiplier, which have a wire to signal when they are busy.
+
+### Stuff I'll probably need to do in the future
+
+- Create a whole bunch of different snoopers for different underlying protocols
+- Create a whole bunch of different forwarders (e.g. off-chip storage, sending out over the network, maybe even saving to a hard drive, etc)
+- Take measurements to see which elements could be optimized
+- (If necessary) pipeline the BPF CPU for extra speed. This would also entail pipelining the ALU.
+- Make the BPF VM's external interface AXI-compatible (shudder)

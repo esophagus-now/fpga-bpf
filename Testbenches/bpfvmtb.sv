@@ -24,10 +24,17 @@ reg pack_wr_en;
 reg rst;
 
 initial begin
-	DUT.bpfvm_i.mycodemem.inst.myram.data[0] <= {16'h0000, 8'h0, 8'h0, 32'd10};
-	DUT.bpfvm_i.mycodemem.inst.myram.data[1] <= {16'h0001, 8'h0, 8'h0, 32'd3};
-	DUT.bpfvm_i.mycodemem.inst.myram.data[2] <= {16'h000C, 8'h0, 8'h0, 32'h0};
-	DUT.bpfvm_i.mycodemem.inst.myram.data[3] <= {16'h0005, 8'h0, 8'h0, 32'hFFFFFFFE};
+	//Quick-n-dirty test program:
+	/*
+	LD #10  -> {16'h0000, 8'h0, 8'h0, 32'd10}
+	LDX #3  -> {16'h0001, 8'h0, 8'h0, 32'd3}
+	ADD X   -> {16'h000C, 8'h0, 8'h0, 32'h0}
+	JA -2   -> {16'h0005, 8'h0, 8'h0, 32'hFFFFFFFE}
+	*/
+	DUT.instruction_memory.myram.data[0] <= {16'h0000, 8'h0, 8'h0, 32'd10};
+	DUT.instruction_memory.myram.data[1] <= {16'h0001, 8'h0, 8'h0, 32'd3};
+	DUT.instruction_memory.myram.data[2] <= {16'h000C, 8'h0, 8'h0, 32'h0};
+	DUT.instruction_memory.myram.data[3] <= {16'h0005, 8'h0, 8'h0, 32'hFFFFFFFE};
 	clk <= 0;
 	code_wr_addr <= 0;
 	code_wr_data <= 0;
@@ -43,13 +50,14 @@ end
 
 always #4 clk <= ~clk;
 
-bpfvm_wrapper DUT
-   (clk,
-    code_wr_addr,
-    code_wr_data,
-    code_wr_en,
-    pack_idata,
-    pack_wr_addr,
-    pack_wr_en,
-    rst);
+bpfvm DUT (
+	.rst(rst),
+	.clk(clk),
+	.code_mem_wr_addr(code_wr_addr),
+	.code_mem_wr_data(code_wr_data),
+	.code_mem_wr_en(code_wr_en),
+	.packet_mem_wr_addr(pack_wr_addr),
+	.packet_mem_wr_data(pack_idata),
+	.packet_mem_wr_en(pack_wr_en)
+);
 endmodule

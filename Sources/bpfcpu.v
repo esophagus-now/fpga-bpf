@@ -9,14 +9,17 @@ Basically just connects bpfvm_ctrl.v and bpfvm_datapath.v together into one bloc
 
 
 module bpfcpu(
+	//TODO: pipeline signals
+	//TODO: fix this damned mess of parameters and constants!
 	input wire rst,
 	input wire clk,
 	output wire packet_mem_rd_en,
 	output wire inst_mem_rd_en,
 	input wire [63:0] inst_mem_data,
-	input wire [63:0] packet_data,
+	input wire [31:0] packet_data,
 	output wire [31:0] packet_addr,
-	output wire [31:0] inst_rd_addr
+	output wire [31:0] inst_rd_addr,
+	output wire [1:0] transfer_sz 
 );
 
 wire [2:0] A_sel;
@@ -37,9 +40,9 @@ wire set;
 wire eq;
 wire gt;
 wire ge;
-wire [1:0] transfer_sz; 
 
-bpfvm_ctrl controller(	.rst(rst),
+bpfvm_ctrl controller(	
+	.rst(rst),
 	.clk(clk),
 	.A_sel(A_sel),
 	.X_sel(X_sel),
@@ -63,8 +66,6 @@ bpfvm_ctrl controller(	.rst(rst),
 	.inst_mem_rd_en(inst_mem_rd_en),
 	.transfer_sz(transfer_sz)
 );
-
-//Tada!!!
 
 bpfvm_datapath datapath(
 	.rst(rst),

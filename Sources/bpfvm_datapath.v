@@ -32,7 +32,7 @@ module bpfvm_datapath(
     input wire B_sel,
     input wire [3:0] ALU_sel,
     input wire [63:0] inst_mem_data,
-    input wire [63:0] packet_data, //This will always get padded to 64 bits
+    input wire [31:0] packet_data, //This will always get padded to 32 bits
     input wire [63:0] packet_len,
     input wire regfile_wr_en,
     input wire regfile_sel,

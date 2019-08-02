@@ -8,7 +8,7 @@ Problem was, to change which packets are copied to userspace, code inside the Li
 
 ## The BSD Packet Filter Virtual Machine (BPFVM)
 
-Enter the BSD packet filter virtual machine. The "interpreter" in  the kernel is essentially an emulator for a very simple processor architecture*, which I've summarized in [this file]("./BPF VM"). McCanne went on to write a fairly sophisticated compiler which could accept human-readable filter specifications, and compile a working BPF machine code program.
+Enter the BSD packet filter virtual machine. The "interpreter" in  the kernel is essentially an emulator for a very simple processor architecture*, which I've summarized in [this file](BPF VM). McCanne went on to write a fairly sophisticated compiler which could accept human-readable filter specifications, and compile a working BPF machine code program.
 
 *There were similar solutions already out there. However, in [a talk given by Steve McCanne](https://www.youtube.com/watch?v=XHlqIqPvKw8), he explains that the BPF VM architecture was specifically designed for fast emulation on a regular RISC CPU (and with minimal memory accesses).
 

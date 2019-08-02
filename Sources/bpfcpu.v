@@ -8,17 +8,23 @@ Basically just connects bpfvm_ctrl.v and bpfvm_datapath.v together into one bloc
 */
 
 
-module bpfcpu(
+module bpfcpu # (parameter
+	CODE_ADDR_WIDTH = 10,
+	CODE_DATA_WIDTH = 64,
+	PACKET_BYTE_ADDR_WIDTH = 12,
+	PACKET_ADDR_WIDTH = (PACKET_BYTE_ADDR_WIDTH - 2),
+	PACKET_DATA_WIDTH = 32
+)(
 	//TODO: pipeline signals
 	//TODO: fix this damned mess of parameters and constants!
 	input wire rst,
 	input wire clk,
 	output wire packet_mem_rd_en,
 	output wire inst_mem_rd_en,
-	input wire [63:0] inst_mem_data,
-	input wire [31:0] packet_data,
-	output wire [31:0] packet_addr,
-	output wire [31:0] inst_rd_addr,
+	input wire [CODE_DATA_WIDTH-1:0] inst_mem_data,
+	input wire [PACKET_DATA_WIDTH-1:0] packet_data,
+	output wire [PACKET_ADDR_WIDTH-1:0] packet_addr,
+	output wire [CODE_ADDR_WIDTH-1:0] inst_rd_addr,
 	output wire [1:0] transfer_sz 
 );
 
@@ -32,7 +38,7 @@ wire PC_en;
 wire PC_rst;
 wire B_sel;
 wire [3:0] ALU_sel;
-wire [63:0] packet_len;
+wire [63:0] packet_len; //Should this be an external signal?
 wire regfile_wr_en;
 wire regfile_sel;
 wire [15:0] opcode;

@@ -8,7 +8,7 @@ Wires up the BPF CPU core (bpfcpu.v) with instruction and packet memory.
 
 //TODO: Fix this
 `define CODE_ADDR_WIDTH 10
-`define CODE_DATA_WIDTH 64
+`define CODE_DATA_WIDTH 64 
 `define PACKET_BYTE_ADDR_WIDTH 12
 `define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 2)
 `define PACKET_DATA_WIDTH 32
@@ -35,7 +35,13 @@ wire packet_mem_rd_en;
 
 wire [1:0] sz;
 	
-bpfcpu theCPU (
+bpfcpu # (
+	.CODE_ADDR_WIDTH(`CODE_ADDR_WIDTH),
+	.CODE_DATA_WIDTH(`CODE_DATA_WIDTH),
+	.PACKET_BYTE_ADDR_WIDTH(`PACKET_BYTE_ADDR_WIDTH),
+	.PACKET_ADDR_WIDTH(`PACKET_ADDR_WIDTH),
+	.PACKET_DATA_WIDTH(`PACKET_DATA_WIDTH)
+) theCPU (
 	.rst(rst),
 	.clk(clk),
 	.packet_mem_rd_en(packet_mem_rd_en),
@@ -47,7 +53,10 @@ bpfcpu theCPU (
 	.transfer_sz(sz)
 );
 
-codemem instruction_memory (
+codemem # (
+    .ADDR_WIDTH(`CODE_ADDR_WIDTH),
+    .DATA_WIDTH(`CODE_DATA_WIDTH)
+) instruction_memory (
 	.clk(clk),
 	.wr_addr(code_mem_wr_addr),
 	.wr_data(code_mem_wr_data),

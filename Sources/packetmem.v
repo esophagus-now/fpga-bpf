@@ -25,6 +25,9 @@ This module instantiates two packetram modules as its ping and pong buffers.
 `define		BPF_H		2'b01
 `define		BPF_B		2'b10
 
+//GOD what a mess!
+//This is all gonna change soon, so there's kind of no point in fixing it yet
+
 `define DATA_WIDTH 32
 
 module packetmem#(parameter

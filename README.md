@@ -30,8 +30,6 @@ The repository is not super organized right now, but I've left some comments at 
 
 ## What I'm working on right now
 
-- Writing `bpfcpu.v` and `bpfvm.v` (see [high-level diagram](Figures/Verilog\ Modules.png))
-- Updating `packetmem.v` to do ping/pong buffering. I may change `packetram.v` in consequence
 - Creating the round-robin arbiter to "drain" accepted packets. I call this _forwarding_ the packet
 - Creating some "snoopers"
 - Adding all the proper "pipelining" signals to the BPF CPU, packet memory, snoopers, and drainer

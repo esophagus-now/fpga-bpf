@@ -31,15 +31,17 @@ module read_size_adapter # (parameter
     input wire [BYTE_ADDR_WIDTH-1:0] byte_rd_addr,
     input wire [1:0] transfer_sz,
     output wire [BYTE_ADDR_WIDTH-2-1:0] word_rd_addra,
-    output wire [BYTE_ADDR_WIDTH-2-1:0] word_rd_addrb,
+    //output wire [BYTE_ADDR_WIDTH-2-1:0] word_rd_addrb,
     
-    input wire [31:0] mem_rd_dataa,
-    input wire [31:0] mem_rd_datab,
+    //input wire [31:0] mem_rd_dataa,
+    //input wire [31:0] mem_rd_datab,
+    input wire [63:0] bigword,
     output wire [31:0] resized_mem_data //zero-padded on the left (when necessary)
 );
 
 assign word_rd_addra = byte_rd_addr[BYTE_ADDR_WIDTH-1:2];
-assign word_rd_addrb = byte_rd_addr[BYTE_ADDR_WIDTH-1:2] + 1;
+//assign word_rd_addrb = byte_rd_addr[BYTE_ADDR_WIDTH-1:2] + 1;
+//NOTE: this calculation was moved into packetram.v
 
 //The offset into the 64 bit word returned
 wire [1:0] offset;
@@ -56,8 +58,9 @@ end
 //This is written assuming packetram data width is 32
 //We need to deal with the offset into the 64 bit word
 
-wire [63:0] bigword;
-assign bigword = {mem_rd_dataa, mem_rd_datab};
+//wire [63:0] bigword;
+//assign bigword = {mem_rd_dataa, mem_rd_datab};
+//NOTE: this calculation was moved into packetram.v
 
 wire [31:0] offset0, offset1, offset2, offset3;
 assign offset0 = bigword[63:32];

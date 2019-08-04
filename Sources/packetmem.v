@@ -3,17 +3,12 @@
 
 packetmem.v
 
-This file implements a special memory block with the following capabilites:
- - 32 bit write port (using this module's wr_addr, idata, and wr_en inputs)
- - 8-, 16-, or 32-bit reads from any byte address (using the rest of the inputs/outputs)
-   - Outputs is always 32-bits; if you ask for a smaller size, it is left-padded with zeros
- - (TODO) Ping-ponging between the read and write ports
- 
-The intention here is for this module to fill up the "ping" buffer with a packet
-while a BPF interpreter reads its "pong" buffer to decide whether to forward that
-packet. Of course, the buffers are switched when needed.
+This file is best described by a diagram available in the repo's wiki. It can
+also be found under Figures/pingpangpung.png.
 
-This module instantiates two packetram modules as its ping and pong buffers.
+Essentially, instantiates three packetram modules. It also instantiates a bunch
+of fiddly glue logic, including the p3ctrl module and the painfulmuxes modules 
+in order to arbitrate everything.
 
 */
 

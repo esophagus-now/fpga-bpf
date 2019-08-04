@@ -17,99 +17,159 @@ This module instantiates two packetram modules as its ping and pong buffers.
 
 */
 
-
-//Assumes big-endianness
-
-//Fetch size 
-`define		BPF_W		2'b00 //Word, half-word, and byte
-`define		BPF_H		2'b01
-`define		BPF_B		2'b10
-
-//GOD what a mess!
-//This is all gonna change soon, so there's kind of no point in fixing it yet
-
+//Assumes packetram is 32 bits wide (per port)
 `define DATA_WIDTH 32
 
 module packetmem#(parameter
-    BYTE_ADDR_WIDTH = 12,
-    ADDR_WIDTH = BYTE_ADDR_WIDTH - 2 //This assumes that the memory is 32 bits wide
+    ADDR_WIDTH = 10 
 )(
-    input wire clk,
-    //How many bits for the address width? Should that be a parameter?
-    input wire [BYTE_ADDR_WIDTH-1:0] rd_addr,
-    input wire [1:0] sz, //00 for byte (8b), 01 for half-word (16b), or 10 for word (32b)
-    input wire rd_en, 
-    output wire [`DATA_WIDTH-1:0] odata, //Always padded to 32 bits (left padded with zeros)
-    //sign extension?
-    
-    input wire [ADDR_WIDTH-1:0] wr_addr,
-    input wire [`DATA_WIDTH-1:0] idata,
-    input wire wr_en
+	//TODO: add pipeline signalling
+	input wire clk,
+	
+	//Interface to snooper
+	input wire [ADDR_WIDTH-1:0] snooper_wr_addr,
+	input wire [63:0] snooper_wr_data,
+	input wire snooper_wr_en,
+	input wire snooper_done, //NOTE: this must be a 1-cycle pulse.
+	//TODO: decide whether or not to make this interface simpler
+	//or to possibly do some kind of handshaking
+	
+	//Interface to CPU
+	input wire [ADDR_WIDTH+2-1:0] cpu_byte_rd_addr,
+	input wire [1:0] transfer_sz,
+	output wire [32:0] cpu_rd_data,
+	input wire cpu_rd_en,
+	input wire cpu_rej,
+	input wire cpu_acc, //NOTE: this must be a 1-cycle pulse.
+	//TODO: decide whether or not to make this interface simpler
+	//or to possibly do some kind of handshaking
+	
+	//Interface to forwarder
+	input wire [ADDR_WIDTH-1:0] forwarder_rd_addr,
+	output wire [63:0] forwarder_rd_data,
+	input wire forwarder_rd_en,
+	input wire forwarder_done //NOTE: this must be a 1-cycle pulse.
+	//TODO: decide whether or not to make this interface simpler
+	//or to possibly do some kind of handshaking
 );
 
+//Forward declare wires for memories
+wire [ADDR_WIDTH-1:0] ping_addr;
+wire [2*`DATA_WIDTH-1:0] ping_do;
+wire [`DATA_WIDTH-1:0] ping_di;
+wire ping_wr_en;
+wire ping_rd_en;
 
-//Round byte address down to (aligned) 32-bit word address 
-wire [9:0] addrA;
-assign addrA = (wr_en == 1'b1) ? wr_addr : rd_addr[BYTE_ADDR_WIDTH-1:2];
-wire [9:0] addrB;
-assign addrB = rd_addr[BYTE_ADDR_WIDTH-1:2] + 1; //Port B is only used when performing 64 bit reads, so it's ok to
-//use rd_addr here. Anyway, it has less propagation delay, so I think it's better
-//(Note to self: this used to set addrB to be addrA+1)
+wire [ADDR_WIDTH-1:0] pang_addr;
+wire [2*`DATA_WIDTH-1:0] pang_do;
+wire [`DATA_WIDTH-1:0] pang_di;
+wire pang_wr_en;
+wire pang_rd_en;
 
-//This is the offset of the 32 bit word inside the 64-bit word pointed at by addrA and addrB
-wire [1:0] offset;
-assign offset = rd_addr[1:0];
+wire [ADDR_WIDTH-1:0] pung_addr;
+wire [2*`DATA_WIDTH-1:0] pung_do;
+wire [`DATA_WIDTH-1:0] pung_di;
+wire pung_wr_en;
+wire pung_rd_en;
 
-wire packetram_clock_en; 
-assign packetram_clock_en = rd_en | wr_en;
+//Declare wires for controller stuff
+wire [1:0] sn_sel, cpu_sel, fwd_sel;
 
-wire [2*`DATA_WIDTH-1:0] packetram_do;
+//Instantiate the controller
+p3_ctrl dispatcher (
+	.clk(clk),
+	.A_done(snooper_done),
+	.B_acc(cpu_acc), //Special case for me: B can "accept" a memory buffer and send it to C
+	.B_rej(cpu_rej), //or it can "reject" it and send it back to A
+	.C_done(forwarder_done),
+	.sn_sel(sn_sel),
+	.cpu_sel(cpu_sel),
+	.fwd_sel(fwd_sel)
+);
 
-//TODO: figure out how I'll do ping-ponging
-packetram # (
+//Special thing to do for CPU: apply the read size adapter
+//TODO: fix these variable names, they are extremely confusing!!
+
+wire [ADDR_WIDTH-1:0] cpu_rd_addr;
+wire [2*`DATA_WIDTH-1:0] membuf_rd_data;
+
+read_size_adapter # (
+	.BYTE_ADDR_WIDTH(ADDR_WIDTH+2) 
+) cpu_adapter (
+	.clk(clk),
+	.byte_rd_addr(cpu_byte_rd_addr),
+	.transfer_sz(transfer_sz),
+	.word_rd_addra(cpu_rd_addr),
+	.bigword(membuf_rd_data),
+	.resized_mem_data(cpu_rd_data) //zero-padded on the left (when necessary)
+);
+
+//Instantiate the crazy MUXes
+painfulmuxes # (
+	.ADDR_WIDTH(ADDR_WIDTH)
+) crazy_muxes (
+//Inputs
+	//Format is {addr, wr_data, wr_en}
+	.from_sn({snooper_wr_addr, snooper_wr_data, snooper_wr_en}),
+	//Format is {addr, rd_en}
+	.from_cpu({cpu_rd_addr, cpu_rd_en}),
+	.from_fwd({fwd_rd_addr, fwd_rd_en}),
+	//Format is {rd_data}
+	.from_ping(ping_do),
+	.from_pang(pang_do),
+	.from_pung(pung_do),
+	
+	//Outputs
+	//Format is {rd_data}
+	.to_cpu(membuf_rd_data),
+	.to_fwd(forwarder_rd_data),
+	//Format here is {addr, wr_data, wr_en, rd_en}
+	.to_ping({ping_addr, ping_di, ping_wr_en, ping_rd_en}),
+	.to_pang({pang_addr, pang_di, pang_wr_en, pang_rd_en}),
+	.to_pung({pung_addr, pung_di, pung_wr_en, pung_rd_en}),
+	
+	//Selects
+	.sn_sel(sn_sel),
+	.cpu_sel(cpu_sel),
+	.fwd_sel(fwd_sel)
+);
+
+//Instantiate memories
+packet_ram # (
     .ADDR_WIDTH(ADDR_WIDTH),
     .DATA_WIDTH(`DATA_WIDTH)
 ) ping (
-    .clk(clk),
-    .en(packetram_clock_en),
-    .addra(addrA),
-    .addrb(addrB),
-    .doa(packetram_do[2*`DATA_WIDTH-1:`DATA_WIDTH]),
-    .dob(packetram_do[`DATA_WIDTH-1:0]),
-    .dia(idata),
-    .wr_en(wr_en)
+	.clk(clk),
+	.addra(ping_addr),
+	.dia(ping_di),
+	.wr_en(ping_wr_en),
+	.rd_en(ping_rd_en), //read enable
+	.doa(ping_do)
 );
 
-reg [1:0] sz_r, offset_r;
+packet_ram # (
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(`DATA_WIDTH)
+) pang (
+	.clk(clk),
+	.addra(pang_addr),
+	.dia(pang_di),
+	.wr_en(pang_wr_en),
+	.rd_en(pang_rd_en), //read enable
+	.doa(pang_do)
+);
 
-always @(posedge clk) begin
-	sz_r <= sz;
-	offset_r <= offset;
-end
-
-//This is written assuming DATA_WIDTH is 32
-//We need to deal with the offset into the 64 bit word
-wire [`DATA_WIDTH-1:0] offset0, offset1, offset2, offset3;
-assign offset0 = packetram_do[2*`DATA_WIDTH-1:2*`DATA_WIDTH-32];
-assign offset1 = packetram_do[2*`DATA_WIDTH-1-8:2*`DATA_WIDTH-32-8];
-assign offset2 = packetram_do[2*`DATA_WIDTH-1-16:2*`DATA_WIDTH-32-16];
-assign offset3 = packetram_do[2*`DATA_WIDTH-1-24:2*`DATA_WIDTH-32-24];
-//This "selected" vector is the desired part of the 64-bit word, based on the offset
-wire [`DATA_WIDTH-1:0] selected;
-
-assign selected = (offset_r[1] == 1'b1) ? (
-                    (offset_r[0] == 1'b1) ? offset3 : offset2
-                  ):( 
-                    (offset_r[0] == 1'b1) ? offset1 : offset0
-                  );
-
-//odata is zero-padded if you ask for a smaller size
-assign odata[7:0] = (sz_r == `BPF_W) ? selected[7:0]: 
-					((sz_r == `BPF_H) ? selected[23:16] : selected[31:24]); 
-
-assign odata[15:8] = (sz_r == `BPF_W) ? selected[15:8]: 
-					((sz_r == `BPF_H) ? selected[31:24] : 0);
-
-assign odata[31:16] = (sz_r == `BPF_W) ? selected[31:16]: 0;
+packet_ram # (
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(`DATA_WIDTH)
+) pung (
+	.clk(clk),
+	.addra(pung_addr),
+	.dia(pung_di),
+	.wr_en(pung_wr_en),
+	.rd_en(pung_rd_en), //read enable
+	.doa(pung_do)
+);
 
 endmodule
+

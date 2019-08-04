@@ -22,7 +22,7 @@ By the way, packetramtb.sv has a simple testbench for this file.
 */
 
 
-module packetram # (parameter 
+module packetram_wrapped # (parameter 
     ADDR_WIDTH = 10,
     DATA_WIDTH = 32
 )(
@@ -52,4 +52,38 @@ always @(posedge clk) begin
         dob <= data[addrb];
     end
 end
+endmodule
+
+//Chenge to use rd_en instead of clock enable
+module packet_ram # (parameter 
+    ADDR_WIDTH = 10,
+    DATA_WIDTH = 32
+)(
+    input clk,
+    input [ADDR_WIDTH-1:0] addra,
+    input [DATA_WIDTH-1:0] dia,
+    input wr_en,
+    input rd_en, //read enable
+    output [2*DATA_WIDTH-1:0] doa
+);
+
+wire [ADDR_WIDTH-1:0] addrb;
+assign addrb = addra + 1;
+
+packetram_wrapped # ( 
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH)
+) meminst (
+	.clk(clk),
+	.en(wr_en | rd_en), //clock enable
+
+	.addra(addra),
+	.addrb(addrb),
+	.doa(doa[2*DATA_WIDTH-1:DATA_WIDTH]),
+	.dob(doa[DATA_WIDTH-1:0]),
+    
+	.dia(dia),
+	.wr_en(wr_en)
+);
+
 endmodule

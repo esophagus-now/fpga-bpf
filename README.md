@@ -30,10 +30,9 @@ The repository is not super organized right now, but I've left some comments at 
 
 ## What I'm working on right now
 
+- Creating a fairly comprehensive testbench for the bpfvm.v module (i.e. the final assembly)
 - Creating the round-robin arbiter to "drain" accepted packets. I call this _forwarding_ the packet
 - Creating some "snoopers"
-- Adding all the proper "pipelining" signals to the BPF CPU, packet memory, snoopers, and drainer
-- Figuring out how to deal with multi-cycle operations in the ALU. I notice that the [zipCPU](https://zipcpu.com/) actually writes its own divider and multiplier, which have a wire to signal when they are busy.
 
 ### Stuff I'll probably need to do in the future
 

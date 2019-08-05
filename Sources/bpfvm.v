@@ -66,6 +66,8 @@ codemem # (
 	.rd_en(inst_mem_rd_en)
 );
 
+/*
+TODO: update this for new packetmem!
 packetmem packet_memory(
 	.clk(clk),
 	.rd_addr(packet_mem_rd_addr),
@@ -76,5 +78,5 @@ packetmem packet_memory(
 	.idata(packet_mem_wr_data),
 	.wr_en(packet_mem_wr_en)
 );
-
+*/
 endmodule

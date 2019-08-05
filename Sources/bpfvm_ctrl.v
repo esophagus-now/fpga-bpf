@@ -243,6 +243,11 @@ always @(*) begin
 						//transfer size already taken care of
 						
 						next_state = write_to_X;
+					end else if (addr_type == `BPF_MSH) begin //That weird MSH instruction
+						X_sel = `X_SEL_MSH;
+						X_en = 1'b1;
+						
+						next_state = fetch;
 					end else begin
 						//This is an error
 						next_state = fetch;

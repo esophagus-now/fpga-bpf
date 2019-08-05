@@ -69,6 +69,15 @@ wire [31:0] scratch_idata;
 
 assign scratch_idata = (regfile_sel == 1'b1) ? X : A;
 
+//Named constants for A register MUX
+`define		A_SEL_IMM 	3'b000 
+`define		A_SEL_ABS	3'b001
+`define		A_SEL_IND	3'b010 
+`define		A_SEL_MEM	3'b011
+`define		A_SEL_LEN	3'b100
+`define		A_SEL_MSH	3'b101
+`define		A_SEL_ALU	3'b110
+`define		A_SEL_X		3'b111
 //Accumulator's new value
 always @(posedge clk) begin
     if (A_en == 1'b1) begin
@@ -93,23 +102,31 @@ always @(posedge clk) begin
     end
 end
 
+//Named constants for X register MUX
+`define		X_SEL_IMM 	3'b000 
+`define		X_SEL_ABS	3'b001
+`define		X_SEL_IND	3'b010 
+`define		X_SEL_MEM	3'b011
+`define		X_SEL_LEN	3'b100
+`define		X_SEL_MSH	3'b101
+`define		X_SEL_A		3'b111
 //Auxiliary (X) register's new value
 always @(posedge clk) begin
     if (X_en == 1'b1) begin
         case (X_sel)
-            3'b000:
+            `X_SEL_IMM:
                 X <= imm;
-            3'b001:
+            `X_SEL_ABS:
                 X <= packet_data;
-            3'b010:
+            `X_SEL_IND:
                 X <= packet_data; //Hmmmm... both ABS and IND addressing wire packet_data to X
-            3'b011:
+            `X_SEL_MEM:
                 X <= scratch_odata;
-            3'b100:
+            `X_SEL_LEN:
                 X <= packet_len;
-            3'b101:
-                X <= 0; //TODO: what is that weird MSH thing?
-            3'b111: //for TAX instruction
+            `X_SEL_MSH:
+                X <= {26'b0, imm[3:0], 2'b0}; //TODO: what is that weird MSH thing?
+            `X_SEL_A: //for TAX instruction
                 X <= A;
             default:
                 X <= 0; //Does this even make sense?

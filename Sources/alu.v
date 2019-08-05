@@ -29,10 +29,14 @@ always @(ALU_sel, A, B) begin
         4'h1:
             ALU_out <= A - B;
         4'h2:
-            ALU_out <= A * B; //TODO: what if this takes >1 clock cycle?
+            //ALU_out <= A * B; //TODO: what if this takes >1 clock cycle?
+            ALU_out <= 32'hCAFEDEAD; //For simplicity, return an "error code" to say "modulus not supported"
         4'h3:
+        	/*
             ALU_out <= A / B; //TODO: what if B is zero?
                               //TODO: what if this takes >1 clock cycle?
+            */
+            ALU_out <= 32'hDEADBEEF; //For simplicity, return an "error code" to say "division not supported"
         4'h4:
             ALU_out <= A | B;
         4'h5:
@@ -44,8 +48,11 @@ always @(ALU_sel, A, B) begin
         4'h8:
             ALU_out <= ~A;
         4'h9:
+        	/*
             ALU_out <= A % B; //TODO: what if B is zero?
                               //TODO: what if this takes >1 clock cycle?
+            */
+            ALU_out <= 32'hBEEFCAFE; //For simplicity, return an "error code" to say "modulus not supported"
         4'hA:
             ALU_out <= A ^ B;
         default:

@@ -17,7 +17,11 @@ This "datapath" is intended to be controlled by the FSM defined in bpfvm_ctrl.v
 
 //TODO: Make PC width a parameter, then do the complicated dance Xilinx forces me to
 //in order to update the IP packaged from the block diagram
-module bpfvm_datapath(
+module bpfvm_datapath # (parameter
+	CODE_ADDR_WIDTH = 10,
+	CODE_DATA_WIDTH = 64,
+	PACKET_BYTE_ADDR_WIDTH = 12
+)(
     input wire rst,
     input wire clk,
     input wire [2:0] A_sel,
@@ -26,14 +30,13 @@ module bpfvm_datapath(
     input wire addr_sel,
     input wire A_en,
     input wire X_en,
-    //input wire IR_en,
     input wire PC_en,
     input wire PC_rst,
     input wire B_sel,
     input wire [3:0] ALU_sel,
-    input wire [63:0] inst_mem_data,
+    input wire [CODE_DATA_WIDTH-1:0] inst_mem_data,
     input wire [31:0] packet_data, //This will always get padded to 32 bits
-    input wire [63:0] packet_len,
+    input wire [31:0] packet_len, //Hardcoded
     input wire regfile_wr_en,
     input wire regfile_sel,
     output wire [15:0] opcode,
@@ -41,20 +44,21 @@ module bpfvm_datapath(
     output wire eq,
     output wire gt,
     output wire ge,
-    output wire [31:0] packet_addr,
-    output reg [31:0] PC = 0
-    //output wire [63:0] IR, //This is just to see it in the schematic
-    //output wire inst_mem_RD_en, //This is just to see it in the schematic
-    //output wire packet_RD_en //This is just to see it in the schematic
+    //TODO: Add addr width parameters
+    output wire [PACKET_BYTE_ADDR_WIDTH-1:0] packet_addr,
+    output reg [CODE_ADDR_WIDTH-1:0] PC = 0,
+    output wire A_is_zero,
+    output wire X_is_zero,
+    output wire imm_is_zero
 );
 
 reg [31:0] A, X; //A is the accumulator, X is the auxiliary register
 wire [31:0] B; //ALU's second operand
 wire [31:0] ALU_out;
-wire [63:0] IR;  //Instruction register
-assign IR = inst_mem_data;
+wire [CODE_DATA_WIDTH-1:0] IR;  //Instruction register
+assign IR = inst_mem_data; //Note: this is just a rename
 
-reg [31:0] nextPC = 0; //This better not be a (clocked) register!
+reg [CODE_ADDR_WIDTH-1:0] nextPC = 0; //This better not be a (clocked) register!
 
 wire [7:0] jt, jf; //These are named subfields of the IR value
 wire [31:0] imm;
@@ -93,7 +97,7 @@ always @(posedge clk) begin
             3'b100:
                 A <= packet_len;
             3'b101:
-                A <= 0; //TODO: what is that weird MSH thing?
+                A <= {26'b0, imm[3:0], 2'b0}; //TODO: No MSH instruction is defined (by bpf) for A. Should I leave this?
             3'b110:
                 A <= ALU_out;
             3'b111: //for TXA instruction
@@ -125,7 +129,7 @@ always @(posedge clk) begin
             `X_SEL_LEN:
                 X <= packet_len;
             `X_SEL_MSH:
-                X <= {26'b0, imm[3:0], 2'b0}; //TODO: what is that weird MSH thing?
+                X <= {26'b0, imm[3:0], 2'b0};
             `X_SEL_A: //for TAX instruction
                 X <= A;
             default:
@@ -182,6 +186,8 @@ regfile scratchmem (
     .wr_en(regfile_wr_en)
 );
 
-
+assign A_is_zero = (A == 0);
+assign X_is_zero = (X == 0);
+assign imm_is_zero = (imm == 0);
 
 endmodule

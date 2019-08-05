@@ -87,14 +87,19 @@ modified to match Verilog's syntax
 `define		PC_SEL_PLUS_JT	2'b01
 `define		PC_SEL_PLUS_JF	2'b10
 `define		PC_SEL_PLUS_IMM	2'b11
+//Return register select
+`define		RET_IMM		2'b00
+`define		RET_X		2'b01
+`define		RET_A		2'b10
 
-//I use logic where I intend a combinational signal, but I need to
+//I use "logic" where I intend a combinational signal, but I need to
 //use reg to make Verilog's compiler happy
 `define logic reg
 
 `define STATE_WIDTH 4 //This should be big enough
 
 module bpfvm_ctrl(
+	//TODO: logic for the rst line. It is currently ignored
     input wire rst,
     input wire clk,
     output `logic [2:0] A_sel,
@@ -107,7 +112,7 @@ module bpfvm_ctrl(
     output `logic PC_rst,
     output wire B_sel,
     output wire [3:0] ALU_sel,
-    output wire [63:0] packet_len,
+    output wire [31:0] packet_len, //Hardcoded to 32 bits
     output `logic regfile_wr_en,
     output `logic regfile_sel,
     input wire [15:0] opcode,
@@ -117,7 +122,13 @@ module bpfvm_ctrl(
     input wire ge,
     output `logic packet_mem_rd_en,
     output `logic inst_mem_rd_en,
-    output wire [1:0] transfer_sz //TODO: should this be in the datapath instead?
+    output wire [1:0] transfer_sz, //TODO: should this be in the datapath instead?
+    input wire mem_ready, //Signal from packetmem.v; tells CPU when to start
+    input wire A_is_zero,
+    input wire X_is_zero,
+    input wire imm_is_zero,
+    output reg accept,
+    output reg reject
     );
 
 //These are named subfields of the opcode
@@ -126,7 +137,7 @@ assign opcode_class = opcode[2:0];
 wire [2:0] addr_type;
 assign addr_type = opcode[7:5];
 //wire [1:0] transfer_sz;
-assign transfer_sz = opcode[4:3]; //TODO: fix packetmem so the encodings work properly
+assign transfer_sz = opcode[4:3]; 
 //wire B_sel;
 assign B_sel = opcode[3];
 //wire [3:0] alu_sel;
@@ -136,6 +147,8 @@ wire [2:0] jmp_type;
 assign jmp_type = opcode[6:4];
 wire [4:0] miscop;
 assign miscop = opcode[7:3];
+wire [1:0] retval;
+assign retval = opcode[4:3];
 
 reg [4:0] delay_count; //TODO: replace this with better logic
 //This is used to wait for the ALU to finish long operations
@@ -157,11 +170,13 @@ end
 always @(*) begin
 	{A_en, X_en, PC_en, PC_rst,
 	regfile_wr_en, packet_mem_rd_en, 
-	inst_mem_rd_en} = 0;	//Reset "dangerous" control bus lines to 0
+	inst_mem_rd_en, accept, reject} = 0;	//Reset "dangerous" control bus lines to 0
 							//Note the use of the blocking assignment
 	case (state)
 		reset: begin
-		next_state = fetch;
+		//TODO: logic for the rst line
+		if (mem_ready) next_state = fetch;
+		else next_state = reset;
 	end fetch: begin
 			PC_sel = `PC_SEL_PLUS_1; //Select PC+1
 			PC_en = 1'b1;   //Update PC
@@ -309,9 +324,19 @@ always @(*) begin
 					
 					next_state = fetch; //Is this OK?
 				end `BPF_RET: begin //RET
-					//TODO: figure out how BPF VM signals that a packet is accepted or not
+					//I hope Vivado is smart enough to optimize this
 					
-					next_state = fetch;
+					if (retval == `RET_IMM && !imm_is_zero) begin
+						accept = 1;
+					end else if (retval == `RET_X && !X_is_zero) begin
+						accept = 1;
+					end else if (retval == `RET_A && !A_is_zero) begin
+						accept = 1;
+					end else begin
+						reject = 1;
+					end
+					
+					next_state = reset;
 					
 				end `BPF_MISC: begin //MISC
 					if (miscop == 0) begin //TAX

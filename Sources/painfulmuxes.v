@@ -97,7 +97,7 @@ muxselinvert muxthing(
 	.pung_sel(pung_sel)
 );
 
-//Note needed at the moment. Might possibly need one for ferrying
+//Not needed at the moment. Might possibly need one for ferrying
 //along ready signals
 /*
 mux3 # () sn_mux (
@@ -109,18 +109,18 @@ mux3 # () sn_mux (
 );
 */
 
-mux3 # (`READ_WIDTH -1) cpu_mux (
+mux3 # (`READ_WIDTH) cpu_mux (
 	.A(from_ping),
-	.B(from_ping),
-	.C(from_ping),
+	.B(from_pang),
+	.C(from_pung),
 	.sel(cpu_sel),
 	.D(to_cpu)
 );
 
-mux3 # (`READ_WIDTH -1) fwd_mux (
+mux3 # (`READ_WIDTH) fwd_mux (
 	.A(from_ping),
-	.B(from_ping),
-	.C(from_ping),
+	.B(from_pang),
+	.C(from_pung),
 	.sel(fwd_sel),
 	.D(to_fwd)
 );
@@ -139,7 +139,7 @@ assign from_cpu_padded = {from_cpu[ADDR_WIDTH + `ENABLE_BIT -1:1], `WRITE_WIDTH'
 assign from_fwd_padded = {from_fwd[ADDR_WIDTH + `ENABLE_BIT -1:1], `WRITE_WIDTH'b0, `ENABLE_BIT'b0, from_fwd[0]};
 
 
-mux3 # (ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT -1) ping_mux (
+mux3 # (ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT) ping_mux (
 	.A(from_sn_padded),
 	.B(from_cpu_padded),
 	.C(from_fwd_padded),
@@ -147,7 +147,7 @@ mux3 # (ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT -1) ping_mux (
 	.D(to_ping)
 );
 
-mux3 # (ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT -1) pang_mux (
+mux3 # (ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT) pang_mux (
 	.A(from_sn_padded),
 	.B(from_cpu_padded),
 	.C(from_fwd_padded),
@@ -155,7 +155,7 @@ mux3 # (ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT -1) pang_mux (
 	.D(to_pang)
 );
 
-mux3 # (ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT -1) pung_mux (
+mux3 # (ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT) pung_mux (
 	.A(from_sn_padded),
 	.B(from_cpu_padded),
 	.C(from_fwd_padded),

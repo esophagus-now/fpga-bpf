@@ -12,16 +12,35 @@ and controller. Finally, make all the memory write inputs (aswell as clock and r
 external.
 */
 
+`define CODE_ADDR_WIDTH 10
+`define CODE_DATA_WIDTH 64 
+`define PACKET_BYTE_ADDR_WIDTH 12
+`define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 2)
+`define PACKET_DATA_WIDTH 32
 
 module bpfvmtb();
-reg clk;
-reg [9:0]code_wr_addr;
-reg [63:0]code_wr_data;
-reg code_wr_en;
-reg [31:0]pack_idata;
-reg [9:0]pack_wr_addr;
-reg pack_wr_en;
+
 reg rst;
+reg clk;
+
+//Interface to an external module which will fill codemem
+reg [`CODE_ADDR_WIDTH-1:0] code_mem_wr_addr;
+reg [`CODE_DATA_WIDTH-1:0] code_mem_wr_data;
+reg code_mem_wr_en;
+
+//Interface to snooper
+reg [`PACKET_ADDR_WIDTH-1:0] snooper_wr_addr;
+reg [31:0] snooper_wr_data; //Hardcoded to 32 bits. TODO: change this to 64?
+reg snooper_wr_en;
+reg snooper_done; //NOTE: this must be a 1-cycle pulse.
+wire ready_for_snooper;
+
+//Interface to forwarder
+reg [`PACKET_ADDR_WIDTH-1:0] forwarder_rd_addr;
+wire [63:0] forwarder_rd_data;
+reg forwarder_rd_en;
+reg forwarder_done; //NOTE: this must be a 1-cycle pulse.
+wire ready_for_forwarder;
 
 initial begin
 	//Quick-n-dirty test program:
@@ -36,13 +55,25 @@ initial begin
 	DUT.instruction_memory.myram.data[2] <= {16'h000C, 8'h0, 8'h0, 32'h0};
 	DUT.instruction_memory.myram.data[3] <= {16'h0005, 8'h0, 8'h0, 32'hFFFFFFFE};
 	clk <= 0;
-	code_wr_addr <= 0;
-	code_wr_data <= 0;
-	code_wr_en <= 0;
-	pack_idata <= 0;
-	pack_wr_addr <= 0;
-	pack_wr_en <= 0;
 	rst <= 0;
+	code_mem_wr_addr <= 0;
+	code_mem_wr_data <= 0;
+	code_mem_wr_en <= 0;
+	
+	snooper_wr_addr <= 0;
+	snooper_wr_data <= 0;
+	snooper_wr_en <= 0;
+	snooper_done <= 0;
+	
+	forwarder_rd_addr <= 0;
+	forwarder_rd_en <= 0;
+	forwarder_done <= 0;
+	
+	//Pretend the snooper has filled a packet
+	@(negedge clk);
+	snooper_done <= 1;
+	@(negedge clk);
+	snooper_done <= 0;
 	
 	#200
 	$finish;
@@ -51,13 +82,26 @@ end
 always #4 clk <= ~clk;
 
 bpfvm DUT (
+	//TODO: add proper reset signal handling
 	.rst(rst),
 	.clk(clk),
-	.code_mem_wr_addr(code_wr_addr),
-	.code_mem_wr_data(code_wr_data),
-	.code_mem_wr_en(code_wr_en),
-	.packet_mem_wr_addr(pack_wr_addr),
-	.packet_mem_wr_data(pack_idata),
-	.packet_mem_wr_en(pack_wr_en)
+	//Interface to an external module which will fill codemem
+	.code_mem_wr_addr(code_mem_wr_addr),
+	.code_mem_wr_data(code_mem_wr_data),
+	.code_mem_wr_en(code_mem_wr_en),
+    
+    //Interface to snooper
+	.snooper_wr_addr(snooper_wr_addr),
+	.snooper_wr_data(snooper_wr_data), //Hardcoded to 32 bits. TODO: change this to 64?
+	.snooper_wr_en(snooper_wr_en),
+	.snooper_done(snooper_done), //NOTE: this must be a 1-cycle pulse.
+	.ready_for_snooper(ready_for_snooper),
+    
+	//Interface to forwarder
+	.forwarder_rd_addr(forwarder_rd_addr),
+	.forwarder_rd_data(forwarder_rd_data),
+	.forwarder_rd_en(forwarder_rd_en),
+	.forwarder_done(forwarder_done), //NOTE: this must be a 1-cycle pulse.
+	.ready_for_forwarder(ready_for_forwarder)
 );
 endmodule

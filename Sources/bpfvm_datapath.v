@@ -131,7 +131,7 @@ always @(posedge clk) begin
             `X_SEL_LEN:
                 X <= packet_len;
             `X_SEL_MSH:
-                X <= {26'b0, imm[3:0], 2'b0};
+                X <= {26'b0, packet_data[3:0], 2'b0};
             `X_SEL_A: //for TAX instruction
                 X <= A;
             default:

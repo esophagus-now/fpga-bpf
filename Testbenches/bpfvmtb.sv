@@ -110,6 +110,76 @@ begin
 end
 endtask
 
+event write_rejectable_packet, write_rejectable_packet_done;
+event write_acceptable_packet, write_acceptable_packet_done;
+
+initial forever begin
+	@(write_rejectable_packet);
+	
+	wait(ready_for_snooper); //I'm smiling to myself as I write "snooper" everywhere
+	//You know that 80s song "dreamer"? "snooooo-per!... you know you are a snooo-per!"
+	snooper_wr_addr = 0;
+	
+	//This packet should be rejected
+	snoopwr(32'hDEADBEEF);
+	snoopwr(32'hBEEFCAFE);
+	snoopwr(32'hCAFEDEAD);
+	snoopwr(32'h01234567);
+	snoopwr(32'h89ABCDEF);
+	snoopwr(32'h55555555);
+	snoopwr(32'hAAAAAAAA);
+	snoopwr(32'h00000000);
+	snoopwr(32'h11111111);
+	snoopwr(32'h22222222);
+	snoopwr(32'hFFFFFFFF);
+	
+	@(negedge clk);
+	snooper_done = 1;
+	@(negedge clk);
+	snooper_done = 0;
+	->write_rejectable_packet_done;
+end
+
+
+initial forever begin
+	@(write_acceptable_packet);
+	
+	wait(ready_for_snooper); //I'm smiling to myself as I write "snooper" everywhere
+	//You know that 80s song "dreamer"? "snooooo-per!... you know you are a snooo-per!"
+	snooper_wr_addr = 0;
+	
+	//This packet should be accepted
+	snoopwr(32'h70b31760);
+	snoopwr(32'ha09f782b);
+	snoopwr(32'hcba3f197);
+	snoopwr(32'h08004500);
+	snoopwr(32'h00288860);
+	snoopwr(32'h00000206);
+	snoopwr(32'hfd248064);
+	snoopwr(32'hf13dc0a8);
+	snoopwr(32'h010100c8);
+	snoopwr(32'h0064acbe);
+	snoopwr(32'hbdc10000);
+	snoopwr(32'h00005004);
+	snoopwr(32'h05c80b21);
+	snoopwr(32'h0000FFFF);
+	
+	@(negedge clk);
+	snooper_done = 1;
+	@(negedge clk);
+	snooper_done = 0;
+	->write_acceptable_packet_done;
+end
+
+//This pretends to be a forwarder which always finishes after 50 cycles
+initial forever begin
+	wait(ready_for_forwarder);
+	repeat (49) @(negedge clk);
+	forwarder_done = 1;
+	@(negedge clk);
+	forwarder_done = 0;
+end
+
 initial begin
 // Old quick-n-dirty test program
 /*
@@ -120,19 +190,19 @@ DUT.instruction_memory.myram.data[3] <= {16'h0005, 8'h0, 8'h0, 32'hFFFFFFFE};
 */
 
 	DUT.instruction_memory.myram.data[0] <= {8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}; //ldh [12]
-	DUT.instruction_memory.myram.data[1] <= {8'b0, 3'b001, 2'b00, 3'b101, 8'd0, 8'd13, 32'h800}; //jeq #0x800 jt 2 jf 15
+	DUT.instruction_memory.myram.data[1] <= {8'b0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd13, 32'h800}; //jeq #0x800 jt 2 jf 15
 	DUT.instruction_memory.myram.data[2] <= {8'h0, `BPF_ABS, `BPF_B, `BPF_LD, 8'h88, 8'h88, 32'd23}; //ldb [23]
-	DUT.instruction_memory.myram.data[3] <= {8'h0, `BPF_JEQ, `BPF_IMM, `BPF_JMP, 8'd0, 8'd11, 32'h0006}; //jeq #0x6 jt 4 jf 15
+	DUT.instruction_memory.myram.data[3] <= {8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd11, 32'h0006}; //jeq #0x6 jt 4 jf 15
 	DUT.instruction_memory.myram.data[4] <= {8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h0, 8'h0, 32'd20}; //ldh [20]
-	DUT.instruction_memory.myram.data[5] <= {8'h0, `BPF_JSET, `BPF_IMM, `BPF_JMP, 8'd9, 8'd0, 32'h1FFF}; //jset 0x1FFF jt 15 jf 6
-	DUT.instruction_memory.myram.data[6] <= {8'h0, `BPF_MSH, `BPF_IMM, `BPF_LDX, 8'h0, 8'h0, 32'd14}; //ldx_msh addr 14
+	DUT.instruction_memory.myram.data[5] <= {8'h0, `BPF_JSET, `BPF_COMP_IMM, `BPF_JMP, 8'd9, 8'd0, 32'h1FFF}; //jset 0x1FFF jt 15 jf 6
+	DUT.instruction_memory.myram.data[6] <= {8'h0, `BPF_MSH, `BPF_B, `BPF_LDX, 8'h0, 8'h0, 32'd14}; //ldxb_msh addr 14
 	DUT.instruction_memory.myram.data[7] <= {8'h0, `BPF_IND, `BPF_H, `BPF_LD, 8'h0, 8'h0, 32'd14}; //ldh ind x+14
-	DUT.instruction_memory.myram.data[8] <= {8'h0, `BPF_JEQ, `BPF_IMM, `BPF_JMP, 8'd0, 8'd2, 32'h0064}; //jeq 0x64 jt 9 jf 11
+	DUT.instruction_memory.myram.data[8] <= {8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd2, 32'h0064}; //jeq 0x64 jt 9 jf 11
 	DUT.instruction_memory.myram.data[9] <= {8'h0, `BPF_IND, `BPF_H, `BPF_LD, 8'h0, 8'h0, 32'd16}; //ldh ind x+16
-	DUT.instruction_memory.myram.data[10] <= {8'h0, `BPF_JEQ, `BPF_IMM, `BPF_JMP, 8'd3, 8'd4, 32'h00C8}; //jeq 0xC8 jt 14 jf 15
-	DUT.instruction_memory.myram.data[11] <= {8'h0, `BPF_JEQ, `BPF_IMM, `BPF_JMP, 8'd0, 8'd3, 32'h00C8}; //jeq 0xC8 jt 12 jf 15
+	DUT.instruction_memory.myram.data[10] <= {8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd3, 8'd4, 32'h00C8}; //jeq 0xC8 jt 14 jf 15
+	DUT.instruction_memory.myram.data[11] <= {8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd3, 32'h00C8}; //jeq 0xC8 jt 12 jf 15
 	DUT.instruction_memory.myram.data[12] <= {8'h0, `BPF_IND, `BPF_H, `BPF_LD, 8'h0, 8'h0, 32'd16}; //ldh ind x+16
-	DUT.instruction_memory.myram.data[13] <= {8'h0, `BPF_JEQ, `BPF_IMM, `BPF_JMP, 8'd0, 8'd1, 32'h0064}; //jeq 0x64 jt 14 jf 15
+	DUT.instruction_memory.myram.data[13] <= {8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd1, 32'h0064}; //jeq 0x64 jt 14 jf 15
 	DUT.instruction_memory.myram.data[14] <= {8'h0, 3'b0, `RET_IMM,   `BPF_RET, 8'd0, 8'd0, 32'd65535}; //ret #65535
 	DUT.instruction_memory.myram.data[15] <= {8'h0, 3'b0, `RET_IMM,   `BPF_RET, 8'd0, 8'd0, 32'd0}; //ret #0
 	
@@ -152,26 +222,13 @@ DUT.instruction_memory.myram.data[3] <= {16'h0005, 8'h0, 8'h0, 32'hFFFFFFFE};
 	forwarder_rd_en <= 0;
 	forwarder_done <= 0;
 	
-	snoopwr(32'hDEADBEEF);
-	snoopwr(32'hBEEFCAFE);
-	snoopwr(32'hCAFEDEAD);
-	snoopwr(32'h01234567);
-	snoopwr(32'h89ABCDEF);
-	snoopwr(32'h55555555);
-	snoopwr(32'hAAAAAAAA);
-	snoopwr(32'h00000000);
-	snoopwr(32'h11111111);
-	snoopwr(32'h22222222);
-	snoopwr(32'hFFFFFFFF);
+	->write_rejectable_packet;
 	
-	//Pretend the snooper has filled a packet
-	@(negedge clk);
-	snooper_done <= 1;
-	@(negedge clk);
-	snooper_done <= 0;
+	@(write_rejectable_packet_done);
+	->write_acceptable_packet;
 	
-	wait(DUT.cpu_acc | DUT.cpu_rej);
-	#20
+	wait(forwarder_done);
+	#40
 	$finish;
 end
 

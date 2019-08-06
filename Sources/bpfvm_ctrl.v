@@ -182,9 +182,10 @@ always @(*) begin
 							//Note the use of the blocking assignment
 	case (state)
 		reset: begin
-		//TODO: logic for the rst line
-		if (mem_ready) next_state = fetch;
-		else next_state = reset;
+			//TODO: logic for the rst line
+			PC_rst = 1;
+			if (mem_ready) next_state = fetch;
+			else next_state = reset;
 		end fetch: begin
 				PC_sel = `PC_SEL_PLUS_1; //Select PC+1
 				PC_en = 1'b1;   //Update PC

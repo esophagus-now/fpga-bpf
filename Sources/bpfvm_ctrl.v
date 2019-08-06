@@ -39,9 +39,11 @@ modified to match Verilog's syntax
 `define		BPF_LEN		3'b100
 `define		BPF_MSH		3'b101
 //Named constants for A register MUX
-`define		A_SEL_IMM 	3'b000 
-`define		A_SEL_ABS	3'b001
-`define		A_SEL_IND	3'b010 
+`define		A_SEL_IMM 	3'b000
+`define		A_SEL_PACKET_MEM 3'b001
+// I noticed that both these selections do the same thing
+//`define		A_SEL_ABS	3'b001
+//`define		A_SEL_IND	3'b010 
 `define		A_SEL_MEM	3'b011
 `define		A_SEL_LEN	3'b100
 `define		A_SEL_MSH	3'b101
@@ -49,8 +51,10 @@ modified to match Verilog's syntax
 `define		A_SEL_X		3'b111
 //Named constants for X register MUX
 `define		X_SEL_IMM 	3'b000 
-`define		X_SEL_ABS	3'b001
-`define		X_SEL_IND	3'b010 
+`define		X_SEL_PACKET_MEM 3'b001
+// I noticed that both these selections do the same thing
+//`define		X_SEL_ABS	3'b001
+//`define		X_SEL_IND	3'b010 
 `define		X_SEL_MEM	3'b011
 `define		X_SEL_LEN	3'b100
 `define		X_SEL_MSH	3'b101
@@ -82,6 +86,9 @@ modified to match Verilog's syntax
 `define		BPF_JGT		3'b010
 `define		BPF_JGE		3'b011
 `define		BPF_JSET	3'b100
+//Compare-to value select
+`define		BPF_COMP_IMM	1'b0
+`define 	BPF_COMP_X		1'b1
 //PC value select
 `define		PC_SEL_PLUS_1	2'b00
 `define		PC_SEL_PLUS_JT	2'b01
@@ -154,7 +161,8 @@ reg [4:0] delay_count; //TODO: replace this with better logic
 //This is used to wait for the ALU to finish long operations
 
 //State encoding. Does Vivado automatically re-encode these for better performance?
-parameter fetch = 0, decode = 1, write_to_A = 2, write_to_X = 3, countdown = 4, reset = (2**`STATE_WIDTH-1); 
+parameter 	fetch = 0, decode = 1, write_mem_to_A = 2, write_mem_to_X = 3, countdown = 4,
+			write_ALU_to_A = 5, msh_write_mem_to_X = 6, reset = (2**`STATE_WIDTH-1); 
 
 reg [`STATE_WIDTH-1:0] state;
 initial state = reset;
@@ -177,12 +185,12 @@ always @(*) begin
 		//TODO: logic for the rst line
 		if (mem_ready) next_state = fetch;
 		else next_state = reset;
-	end fetch: begin
-			PC_sel = `PC_SEL_PLUS_1; //Select PC+1
-			PC_en = 1'b1;   //Update PC
-			inst_mem_rd_en = 1'b1; //Enable reading from memory
-			
-			next_state = decode; //Need to wait a cycle for memory read
+		end fetch: begin
+				PC_sel = `PC_SEL_PLUS_1; //Select PC+1
+				PC_en = 1'b1;   //Update PC
+				inst_mem_rd_en = 1'b1; //Enable reading from memory
+				
+				next_state = decode; //Need to wait a cycle for memory read
 		end decode: begin
 			//I called this state "decode" to keep it short, but in reality
 			//this does decoding AND the first clock cycle of the instruction
@@ -192,13 +200,13 @@ always @(*) begin
 					if (addr_type == `BPF_IMM) begin //immediate
 						A_sel = `A_SEL_IMM;
 						A_en = 1'b1;
-						
+							
 						next_state = fetch;
 					end else if (addr_type == `BPF_MEM) begin //scratch memory
 						//Note that datapath already takes care of regfile address
 						A_sel = `A_SEL_MEM;
 						A_en = 1'b1;
-						
+							
 						next_state = fetch; //We can get away with this because I'm using
 						//distributed RAM ("asynchronous" reads) in the register file
 						//That is, I don't need to wait a clock cycle for the data to be
@@ -206,23 +214,23 @@ always @(*) begin
 					end else if (addr_type == `BPF_LEN) begin
 						A_sel = `A_SEL_LEN;
 						A_en = 1'b1;
-						
+							
 						next_state = fetch;
 					end else if (addr_type == `BPF_ABS) begin //packet memory, absolute addressing
 						addr_sel = `PACK_ADDR_ABS;
 						packet_mem_rd_en = 1'b1;
 						//transfer size already taken care of
-						
-						next_state = write_to_A;
+							
+						next_state = write_mem_to_A;
 					end else if (addr_type == `BPF_IND) begin //packet memory, indirect addressing
 						addr_sel = `PACK_ADDR_IND;
 						packet_mem_rd_en = 1'b1;
 						//transfer size already taken care of
-						
-						next_state = write_to_A;
+							
+						next_state = write_mem_to_A;
 					end else begin
 						//This is an error
-						next_state = fetch;
+						next_state = reset;
 					end
 					
 				end `BPF_LDX: begin //LDX
@@ -230,13 +238,13 @@ always @(*) begin
 					if (addr_type == `BPF_IMM) begin //immediate
 						X_sel = `X_SEL_IMM;
 						X_en = 1'b1;
-						
+							
 						next_state = fetch;
 					end else if (addr_type == `BPF_MEM) begin //scratch memory
 						//Note that datapath already takes care of regfile address
 						X_sel = `X_SEL_MEM;
 						X_en = 1'b1;
-						
+							
 						next_state = fetch; //We can get away with this because I'm using
 						//distributed RAM ("asynchronous" reads) in the register file
 						//That is, I don't need to wait a clock cycle for the data to be
@@ -244,43 +252,44 @@ always @(*) begin
 					end else if (addr_type == `BPF_LEN) begin
 						X_sel = `X_SEL_LEN;
 						X_en = 1'b1;
-						
+							
 						next_state = fetch;
 					end else if (addr_type == `BPF_ABS) begin //packet memory, absolute addressing
 						addr_sel = `PACK_ADDR_ABS;
 						packet_mem_rd_en = 1'b1;
 						//transfer size already taken care of
-						
-						next_state = write_to_X;
+							
+						next_state = write_mem_to_X;
 					end else if (addr_type == `BPF_IND) begin //packet memory, indirect addressing
 						addr_sel = `PACK_ADDR_IND;
 						packet_mem_rd_en = 1'b1;
 						//transfer size already taken care of
-						
-						next_state = write_to_X;
+							
+						next_state = write_mem_to_X;
 					end else if (addr_type == `BPF_MSH) begin //That weird MSH instruction
-						X_sel = `X_SEL_MSH;
-						X_en = 1'b1;
-						
-						next_state = fetch;
+						addr_sel = `PACK_ADDR_ABS;
+						packet_mem_rd_en = 1'b1;
+						//transfer size already taken care of
+							
+						next_state = msh_write_mem_to_X;
 					end else begin
 						//This is an error
-						next_state = fetch;
+						next_state = reset;
 					end
-				
+					
 				end `BPF_ST: begin //ST
 					//scratch_mem[imm] = A
 					regfile_wr_en = 1'b1;
 					regfile_sel = `REGFILE_IN_A;
 					//Note that datapath already takes care of regfile address
-					
+						
 					next_state = fetch;
 				end `BPF_STX: begin //STX
 					//scratch_mem[imm] = X
 					regfile_wr_en = 1'b1;
 					regfile_sel = `REGFILE_IN_X;
 					//Note that datapath already takes care of regfile address
-					
+						
 					next_state = fetch;
 				end `BPF_ALU: begin //ALU
 					//Here we have A op= [X|K], with the exception of the NOT operator
@@ -288,16 +297,16 @@ always @(*) begin
 					//The only thing I really want to do now is make sure enough clock
 					//cycles go by.
 					A_sel = `A_SEL_ALU;
-					
+						
 					//Assume +,-,|,&,^ are single-cycle
 					//Assume <<, >>, *, /, % take 32 cycles
 					case (ALU_sel)
 						`BPF_ADD,`BPF_SUB, `BPF_OR, `BPF_AND, `BPF_XOR:
-							next_state = write_to_A;
+							next_state = write_ALU_to_A;
 						default: begin
 							delay_count = 'd31;
-							dest_state_after_countdown = write_to_A;
-							
+							dest_state_after_countdown = write_ALU_to_A;
+								
 							next_state = countdown;
 						end
 					endcase
@@ -305,7 +314,7 @@ always @(*) begin
 					//Except for JA, all the jump types use A and B in the ALU
 					//It so happens that B is already selected correctly, ctrl-f
 					//for "assign B_sel"
-					
+						
 					//TODO: is the ALU ready on this clock cycle? What if I get
 					//timing violations?
 					if (jmp_type == `BPF_JA) begin
@@ -321,11 +330,11 @@ always @(*) begin
 						PC_sel = `PC_SEL_PLUS_JF;
 					end
 					PC_en = 1'b1;
-					
+						
 					next_state = fetch; //Is this OK?
 				end `BPF_RET: begin //RET
 					//I hope Vivado is smart enough to optimize this
-					
+						
 					if (retval == `RET_IMM && !imm_is_zero) begin
 						accept = 1;
 					end else if (retval == `RET_X && !X_is_zero) begin
@@ -335,9 +344,9 @@ always @(*) begin
 					end else begin
 						reject = 1;
 					end
-					
+						
 					next_state = reset;
-					
+						
 				end `BPF_MISC: begin //MISC
 					if (miscop == 0) begin //TAX
 						X_sel = `X_SEL_A;
@@ -346,18 +355,27 @@ always @(*) begin
 						A_sel = `A_SEL_X;
 						A_en = 1'b1;
 					end
-					
+						
 					next_state = fetch;
+				end default: begin
+					next_state = reset; //ERROR!
 				end
 			endcase
-			
-			//I think this is also an error
-			//ERROR!
-		end write_to_A: begin
+		end write_mem_to_A: begin
 			A_en = 1'b1;
+			A_sel = `A_SEL_PACKET_MEM;
 			next_state = fetch;
-		end write_to_X: begin
+		end write_ALU_to_A: begin
+			A_en = 1'b1;
+			A_sel = `A_SEL_ALU;
+			next_state = fetch;
+		end write_mem_to_X: begin
 			X_en = 1'b1;
+			X_sel = `X_SEL_PACKET_MEM;
+			next_state = fetch;
+		end msh_write_mem_to_X: begin
+			X_en = 1'b1;
+			X_sel = `X_SEL_MSH;
 			next_state = fetch;
 		end countdown: begin
 			//This is used to wait for long ALU operations

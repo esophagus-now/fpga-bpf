@@ -74,7 +74,9 @@ wire [31:0] scratch_idata;
 assign scratch_idata = (regfile_sel == 1'b1) ? X : A;
 
 //Named constants for A register MUX
-`define		A_SEL_IMM 	3'b000 
+`ifndef A_SEL_IMM
+`define		A_SEL_IMM 	3'b000
+`endif 
 `define		A_SEL_ABS	3'b001
 `define		A_SEL_IND	3'b010 
 `define		A_SEL_MEM	3'b011

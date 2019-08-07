@@ -1,3 +1,5 @@
+//OLD TESTBENCH FILE! WILL NOT WORK WITH NEWER PACKETMEM.V!
+
 `timescale 1ns / 1ps
 
 /*
@@ -32,7 +34,7 @@ reg [`ADDR_WIDTH-1:0] wr_addr;
 reg [`DATA_WIDTH-1:0] idata;
 reg wr_en;
 
-always #4 clk <= ~clk;
+always #5 clk <= ~clk;
 
 event write_vals, write_vals_done;
 event read_vals, read_vals_done;

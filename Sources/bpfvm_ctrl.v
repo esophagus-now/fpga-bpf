@@ -3,11 +3,9 @@
 
 bpfvm_ctrl.v
 
-Note: I told Vivado to use the SystemVerilog compiler for this. I'm just causing myself
-a headache, aren't I?
-
-This (unfinished, some would say unstarted) module implements the FSM that drives the
-BPF processor. Most of its outputs control the bpfvm_dapath module.
+This implements a finite state machine that correctly twiddles the
+datapath's select and enable lines depending on the instruction. It
+assumes that the code and packet memories have single-cycle access.
 
 */
 
@@ -106,7 +104,6 @@ modified to match Verilog's syntax
 `define STATE_WIDTH 4 //This should be big enough
 
 module bpfvm_ctrl(
-	//TODO: logic for the rst line. It is currently ignored
     input wire rst,
     input wire clk,
     output `logic [2:0] A_sel,
@@ -172,7 +169,8 @@ reg [`STATE_WIDTH-1:0] dest_state_after_countdown;
 
 always @(posedge clk) begin
     //TODO: reset logic
-    state <= next_state;
+    if (rst) state <= reset;
+    else state <= next_state;
 end
     
 always @(*) begin
@@ -180,11 +178,12 @@ always @(*) begin
 	regfile_wr_en, packet_mem_rd_en, 
 	inst_mem_rd_en, accept, reject} = 0;	//Reset "dangerous" control bus lines to 0
 							//Note the use of the blocking assignment
+	{A_sel, X_sel, PC_sel, addr_sel, regfile_sel} = 0; //This is to not infer latches... I don't know if it'll help
 	case (state)
 		reset: begin
 			//TODO: logic for the rst line
 			PC_rst = 1;
-			if (mem_ready) next_state = fetch;
+			if (mem_ready && (!rst)) next_state = fetch;
 			else next_state = reset;
 		end fetch: begin
 				PC_sel = `PC_SEL_PLUS_1; //Select PC+1
@@ -383,7 +382,12 @@ always @(*) begin
 			delay_count = delay_count - 1;
 			if (delay_count == 0) begin
 				next_state = dest_state_after_countdown;
+			end else begin
+				next_state = countdown;
 			end
+		end default: begin
+			//ERROR
+			next_state = reset;
 		end
 	endcase
 end    

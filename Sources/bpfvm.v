@@ -89,6 +89,7 @@ packetmem # (
     .ADDR_WIDTH(`PACKET_ADDR_WIDTH) 
 ) packmem (
 	.clk(clk),
+	.p3ctrl_rst(rst),
 	
 	//Interface to snooper
 	.snooper_wr_addr(snooper_wr_addr),

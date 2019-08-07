@@ -19,6 +19,7 @@ module packetmem#(parameter
     ADDR_WIDTH = 10 
 )(
 	input wire clk,
+	input wire p3ctrl_rst,
 	
 	//Interface to snooper
 	input wire [ADDR_WIDTH-1:0] snooper_wr_addr,
@@ -69,6 +70,7 @@ wire [1:0] sn_sel, cpu_sel, fwd_sel;
 //Instantiate the controller
 p3_ctrl dispatcher (
 	.clk(clk),
+	.rst(p3ctrl_rst),
 	.A_done(snooper_done),
 	.B_acc(cpu_acc), //Special case for me: B can "accept" a memory buffer and send it to C
 	.B_rej(cpu_rej), //or it can "reject" it and send it back to A

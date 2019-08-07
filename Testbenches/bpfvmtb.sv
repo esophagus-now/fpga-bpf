@@ -110,8 +110,48 @@ begin
 end
 endtask
 
+task codewr;
+input [63:0] dat;
+begin
+	wait(clk == 0);
+	code_mem_wr_en = 1;
+	code_mem_wr_data = dat;
+	@(negedge clk);
+	code_mem_wr_en = 0;
+	code_mem_wr_addr = code_mem_wr_addr + 1;
+end
+endtask
+
 event write_rejectable_packet, write_rejectable_packet_done;
 event write_acceptable_packet, write_acceptable_packet_done;
+event fill_code_mem, fill_code_mem_done;
+
+initial forever begin
+	@(fill_code_mem);
+	
+	code_mem_wr_addr = 0;
+	rst <= 1;
+	
+	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]                         
+	codewr({8'b0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd13, 32'h800}); //jeq #0x800 jt 2 jf 15    
+	codewr({8'h0, `BPF_ABS, `BPF_B, `BPF_LD, 8'h88, 8'h88, 32'd23}); //ldb [23]                         
+	codewr({8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd11, 32'h0006}); //jeq #0x6 jt 4 jf 15     
+	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h0, 8'h0, 32'd20}); //ldh [20]                           
+	codewr({8'h0, `BPF_JSET, `BPF_COMP_IMM, `BPF_JMP, 8'd9, 8'd0, 32'h1FFF}); //jset 0x1FFF jt 15 jf 6  
+	codewr({8'h0, `BPF_MSH, `BPF_B, `BPF_LDX, 8'h0, 8'h0, 32'd14}); //ldxb_msh addr 14                  
+	codewr({8'h0, `BPF_IND, `BPF_H, `BPF_LD, 8'h0, 8'h0, 32'd14}); //ldh ind x+14                       
+	codewr({8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd2, 32'h0064}); //jeq 0x64 jt 9 jf 11      
+	codewr({8'h0, `BPF_IND, `BPF_H, `BPF_LD, 8'h0, 8'h0, 32'd16}); //ldh ind x+16                       
+	codewr({8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd3, 8'd4, 32'h00C8}); //jeq 0xC8 jt 14 jf 15    
+	codewr({8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd3, 32'h00C8}); //jeq 0xC8 jt 12 jf 15    
+	codewr({8'h0, `BPF_IND, `BPF_H, `BPF_LD, 8'h0, 8'h0, 32'd16}); //ldh ind x+16                      
+	codewr({8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd1, 32'h0064}); //jeq 0x64 jt 14 jf 15    
+	codewr({8'h0, 3'b0, `RET_IMM,   `BPF_RET, 8'd0, 8'd0, 32'd65535}); //ret #65535                    
+	codewr({8'h0, 3'b0, `RET_IMM,   `BPF_RET, 8'd0, 8'd0, 32'd0}); //ret #0                            
+
+	rst <= 0;
+	->fill_code_mem_done;
+end
 
 initial forever begin
 	@(write_rejectable_packet);
@@ -188,7 +228,8 @@ DUT.instruction_memory.myram.data[1] <= {16'h0001, 8'h0, 8'h0, 32'd3};
 DUT.instruction_memory.myram.data[2] <= {16'h000C, 8'h0, 8'h0, 32'h0};
 DUT.instruction_memory.myram.data[3] <= {16'h0005, 8'h0, 8'h0, 32'hFFFFFFFE};
 */
-
+/*
+This trick doesn't work for anything except behavioural simulation
 	DUT.instruction_memory.myram.data[0] <= {8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}; //ldh [12]
 	DUT.instruction_memory.myram.data[1] <= {8'b0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd13, 32'h800}; //jeq #0x800 jt 2 jf 15
 	DUT.instruction_memory.myram.data[2] <= {8'h0, `BPF_ABS, `BPF_B, `BPF_LD, 8'h88, 8'h88, 32'd23}; //ldb [23]
@@ -205,7 +246,7 @@ DUT.instruction_memory.myram.data[3] <= {16'h0005, 8'h0, 8'h0, 32'hFFFFFFFE};
 	DUT.instruction_memory.myram.data[13] <= {8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd1, 32'h0064}; //jeq 0x64 jt 14 jf 15
 	DUT.instruction_memory.myram.data[14] <= {8'h0, 3'b0, `RET_IMM,   `BPF_RET, 8'd0, 8'd0, 32'd65535}; //ret #65535
 	DUT.instruction_memory.myram.data[15] <= {8'h0, 3'b0, `RET_IMM,   `BPF_RET, 8'd0, 8'd0, 32'd0}; //ret #0
-	
+*/	
 
 	clk <= 0;
 	rst <= 0;
@@ -222,6 +263,9 @@ DUT.instruction_memory.myram.data[3] <= {16'h0005, 8'h0, 8'h0, 32'hFFFFFFFE};
 	forwarder_rd_en <= 0;
 	forwarder_done <= 0;
 	
+	->fill_code_mem;
+	@(fill_code_mem_done);
+	
 	->write_rejectable_packet;
 	
 	@(write_rejectable_packet_done);
@@ -234,7 +278,8 @@ end
 
 //initial #1000 $finish;
 
-always #4 clk <= ~clk;
+//Implements 100 MHz clock (I think)
+always #5 clk <= ~clk;
 
 bpfvm DUT (
 	//TODO: add proper reset signal handling

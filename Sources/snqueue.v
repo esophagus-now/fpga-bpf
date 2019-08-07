@@ -12,6 +12,7 @@ pingpangpungcontroller.v (refer to that file for details)
 
 module snqueue (
 	input wire clk,
+	input wire rst,
 
 	input wire [1:0] token_from_cpu,
 	input wire en_from_cpu,
@@ -33,15 +34,21 @@ assign second_n = (en_from_cpu && en_from_fwd) ? token_from_cpu : third;
 assign third_n = (en_from_cpu && en_from_fwd) ? token_from_fwd : incoming;
 
 always @(posedge clk) begin
-	//This feels like it can be optimized somehow...
-	if (deq || (first == 0)) begin
-		first <= first_n;
-	end
-	if (deq || (first == 0) || (second == 0)) begin
-		second <= second_n;
-	end
-	if (deq || (first == 0) || (second == 0) || (third == 0)) begin
-		third <= third_n;
+	if (rst) begin
+		first = 2'b01;
+		second = 2'b10;
+		third = 2'b11;
+	end else begin
+		//This feels like it can be optimized somehow...
+		if (deq || (first == 0)) begin
+			first <= first_n;
+		end
+		if (deq || (first == 0) || (second == 0)) begin
+			second <= second_n;
+		end
+		if (deq || (first == 0) || (second == 0) || (third == 0)) begin
+			third <= third_n;
+		end
 	end
 end
 

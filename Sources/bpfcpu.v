@@ -15,7 +15,6 @@ module bpfcpu # (parameter
 	PACKET_ADDR_WIDTH = (PACKET_BYTE_ADDR_WIDTH - 2),
 	PACKET_DATA_WIDTH = 32
 )(
-	//TODO: fix this damned mess of parameters and constants!
 	input wire rst,
 	input wire clk,
 	input wire mem_ready, //Signal from packetmem.v

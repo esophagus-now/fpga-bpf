@@ -37,6 +37,7 @@ in packetmem.v (in order to wire up certain packetrams to certain agents).
 
 module p3_ctrl(
 	input wire clk,
+	input wire rst,
 	input wire A_done,
 	input wire B_acc, //Special case for me: B can "accept" a memory buffer and send it to C
 	input wire B_rej, //or it can "reject" it and send it back to A
@@ -54,6 +55,7 @@ module p3_ctrl(
 
 snqueue snq(
 	.clk(clk),
+	.rst(rst),
 	.token_from_cpu(cpu_sel),
 	.en_from_cpu(B_rej),
 	.token_from_fwd(fwd_sel),
@@ -64,6 +66,7 @@ snqueue snq(
 
 cpuqueue cpuq(
 	.clk(clk),
+	.rst(rst),
 	.token_from_sn(sn_sel),
 	.en_from_sn(A_done),
 	.deq(B_acc | B_rej),
@@ -72,22 +75,11 @@ cpuqueue cpuq(
 
 fwdqueue fwdq (
 	.clk(clk),
+	.rst(rst),
 	.token_from_cpu(cpu_sel),
 	.en_from_cpu(B_acc),
 	.deq(C_done),
 	.head(fwd_sel)
 );
-
-/*
-muxselinvert muxthing(
-	.sn_sel(sn_sel),
-	.cpu_sel(cpu_sel),
-	.fwd_sel(fwd_sel),
-	.ping_sel(ping_sel),
-	.pang_sel(pang_sel),
-	.pung_sel(pung_sel)
-);
-//This logic moved to painfulmuxes.v
-*/
 
 endmodule

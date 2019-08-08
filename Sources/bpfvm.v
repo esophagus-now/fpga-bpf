@@ -72,19 +72,6 @@ bpfcpu # (
 	.reject(cpu_rej)
 );
 
-codemem # (
-    .ADDR_WIDTH(`CODE_ADDR_WIDTH),
-    .DATA_WIDTH(`CODE_DATA_WIDTH)
-) instruction_memory (
-	.clk(clk),
-	.wr_addr(code_mem_wr_addr),
-	.wr_data(code_mem_wr_data),
-	.wr_en(code_mem_wr_en),
-	.rd_addr(inst_rd_addr),
-	.rd_data(inst_mem_data),
-	.rd_en(inst_mem_rd_en)
-);
-
 packetmem # (
     .ADDR_WIDTH(`PACKET_ADDR_WIDTH) 
 ) packmem (
@@ -113,6 +100,19 @@ packetmem # (
 	.forwarder_rd_en(forwarder_rd_en),
 	.forwarder_done(forwarder_done), //NOTE: this must be a 1-cycle pulse.
 	.ready_for_forwarder(ready_for_forwarder)
+);
+
+codemem # (
+    .ADDR_WIDTH(`CODE_ADDR_WIDTH),
+    .DATA_WIDTH(`CODE_DATA_WIDTH)
+) instruction_memory (
+	.clk(clk),
+	.wr_addr(code_mem_wr_addr),
+	.wr_data(code_mem_wr_data),
+	.wr_en(code_mem_wr_en),
+	.rd_addr(inst_rd_addr),
+	.rd_data(inst_mem_data),
+	.rd_en(inst_mem_rd_en)
 );
 
 endmodule

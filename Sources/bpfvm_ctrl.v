@@ -7,6 +7,9 @@ This implements a finite state machine that correctly twiddles the
 datapath's select and enable lines depending on the instruction. It
 assumes that the code and packet memories have single-cycle access.
 
+This attempts to write the same controller in a different style, which
+Vivado will possibly like more.
+
 */
 
 /*
@@ -125,7 +128,7 @@ module bpfvm_ctrl(
     input wire gt,
     input wire ge,
     output `logic packet_mem_rd_en,
-    output `logic inst_mem_rd_en,
+    output wire inst_mem_rd_en,
     output wire [1:0] transfer_sz, //TODO: should this be in the datapath instead?
     input wire mem_ready, //Signal from packetmem.v; tells CPU when to start
     input wire A_is_zero,
@@ -158,11 +161,11 @@ reg [4:0] delay_count; //TODO: replace this with better logic
 //This is used to wait for the ALU to finish long operations
 
 //State encoding. Does Vivado automatically re-encode these for better performance?
-parameter 	fetch = 0, decode = 1, write_mem_to_A = 2, write_mem_to_X = 3, countdown = 4,
-			write_ALU_to_A = 5, msh_write_mem_to_X = 6, reset = (2**`STATE_WIDTH-1); 
+parameter 	fetch = 0, decode = 1, write_mem_to_A = 2, write_mem_to_X = 3,
+			write_ALU_to_A = 4, msh_write_mem_to_X = 5, reset = (2**`STATE_WIDTH-1); 
 
 reg [`STATE_WIDTH-1:0] state;
-initial state = reset;
+initial state = reset; //NOTE: likely to not synthesize correctly
 `logic [`STATE_WIDTH-1:0] next_state;
 
 reg [`STATE_WIDTH-1:0] dest_state_after_countdown;
@@ -172,222 +175,283 @@ always @(posedge clk) begin
     if (rst) state <= reset;
     else state <= next_state;
 end
-    
+
+//A_en
 always @(*) begin
-	{A_en, X_en, PC_en, PC_rst,
-	regfile_wr_en, packet_mem_rd_en, 
-	inst_mem_rd_en, accept, reject} = 0;	//Reset "dangerous" control bus lines to 0
-							//Note the use of the blocking assignment
-	{A_sel, X_sel, PC_sel, addr_sel, regfile_sel} = 0; //This is to not infer latches... I don't know if it'll help
+	if (
+		(state == decode && (
+			 (opcode_class == `BPF_LD && (
+			 	addr_type == `BPF_IMM ||
+			 	addr_type == `BPF_MEM ||
+			 	addr_type == `BPF_LEN
+			 )) ||
+			 (opcode_class == `BPF_MISC && miscop != 0)
+		)) ||
+		(state == write_mem_to_A) ||
+		(state == write_ALU_to_A)
+	) begin 
+		A_en <= 1'b1;
+	end else begin
+		A_en <= 1'b0;
+	end
+end
+
+//A_sel
+always @(*) begin
+	if (state == write_mem_to_A) begin
+		A_sel <= `A_SEL_PACKET_MEM;
+	end else if (state == write_ALU_to_A) begin
+		A_sel <= `A_SEL_ALU;
+	end else if (state == decode) begin
+		if (opcode_class == `BPF_LD) begin
+			if (addr_type == `BPF_IMM) begin
+				A_sel <= `A_SEL_IMM;
+			end else if (addr_type == `BPF_MEM) begin
+				A_sel <= `A_SEL_MEM;
+			end else if (addr_type == `BPF_LEN) begin
+				A_sel <= `A_SEL_LEN;
+			end else begin
+				A_sel <= 0;
+			end
+		end else if (opcode_class == `BPF_MISC && miscop != 0) begin
+			A_sel <= `A_SEL_X;
+		end else begin
+			A_sel <= 0;
+		end
+	end else begin
+		A_sel <= 0;
+	end
+end
+
+//X_en
+always @(*) begin
+	if (
+		(state == decode && (
+			 (opcode_class == `BPF_LDX && (
+			 	addr_type == `BPF_IMM ||
+			 	addr_type == `BPF_MEM ||
+			 	addr_type == `BPF_LEN
+			 )) ||
+			 (opcode_class == `BPF_MISC && miscop == 0)
+		)) ||
+		(state == write_mem_to_X) ||
+		(state == msh_write_mem_to_X)
+	) begin 
+		X_en <= 1'b1;
+	end else begin
+		X_en <= 1'b0;
+	end
+end
+
+//X_sel
+always @(*) begin
+	if (state == write_mem_to_X) begin
+		X_sel <= `X_SEL_PACKET_MEM;
+	end else if (state == msh_write_mem_to_X) begin
+		X_sel <= `X_SEL_MSH;
+	end else if (state == decode) begin
+		if (opcode_class == `BPF_LDX) begin
+			if (addr_type == `BPF_IMM) begin
+				X_sel <= `X_SEL_IMM;
+			end else if (addr_type == `BPF_MEM) begin
+				X_sel <= `X_SEL_MEM;
+			end else if (addr_type == `BPF_LEN) begin
+				X_sel <= `X_SEL_LEN;
+			end else begin
+				X_sel <= 0;
+			end
+		end else if (opcode_class == `BPF_MISC && miscop == 0) begin
+			X_sel <= `X_SEL_A;
+		end else begin
+			X_sel <= 0;
+		end
+	end else begin
+		X_sel <= 0;
+	end
+end
+
+//PC_en
+always @(*) begin
+	if (state == fetch || (
+			state == decode && opcode_class == `BPF_JMP)
+	) begin
+		PC_en <= 1;
+	end else begin
+		PC_en <= 0;
+	end
+end
+
+//PC_sel
+always @(*) begin
+	if (state == fetch) begin
+		PC_sel <= `PC_SEL_PLUS_1;
+	end else if (state == decode && opcode_class == `BPF_JMP) begin
+		if (jmp_type == `BPF_JA) begin
+			PC_sel <= `PC_SEL_PLUS_IMM;
+		end else if (
+			(jmp_type == `BPF_JEQ && eq) ||
+			(jmp_type == `BPF_JGT && gt) ||
+			(jmp_type == `BPF_JGE && ge) ||
+			(jmp_type == `BPF_JSET && set)
+		) begin
+			PC_sel <= `PC_SEL_PLUS_JT;
+		end else begin
+			PC_sel <= `PC_SEL_PLUS_JF;
+		end
+	end else begin 
+		PC_sel <= 0;
+	end
+end
+
+//PC_rst
+always @(*) begin
+	if (state == reset) begin
+		PC_rst <= 1'b1;
+	end else begin
+		PC_rst <= 0;
+	end
+end
+
+//regfile_wr_en
+always @(*) begin
+	if (state == decode && (
+			opcode_class == `BPF_ST ||
+			opcode_class == `BPF_STX
+		)
+	) begin
+		regfile_wr_en <= 1'b1;
+	end else begin
+		regfile_wr_en <= 1'b0;
+	end
+end
+
+//packet_mem_rd_en
+always @(*) begin
+	if (state == decode) begin
+		if (opcode_class == `BPF_LD && (
+				addr_type == `BPF_ABS ||
+				addr_type == `BPF_IND
+			)
+		) begin
+			packet_mem_rd_en <= 1;
+		end else if (opcode_class == `BPF_LDX && (
+				addr_type == `BPF_ABS ||
+				addr_type == `BPF_IND ||
+				addr_type == `BPF_MSH
+			)
+		) begin
+			packet_mem_rd_en <= 1;
+		end else begin
+			packet_mem_rd_en <= 0;
+		end
+	end else begin
+		packet_mem_rd_en <= 0;
+	end
+end
+
+//inst_mem_rd_en
+assign inst_mem_rd_en = (state == fetch);
+
+//accept/reject
+always @(*) begin
+	if (state == decode && opcode_class == `BPF_RET) begin
+		if (
+			(retval == `RET_IMM && !imm_is_zero) ||
+			(retval == `RET_X && !X_is_zero) ||
+			(retval == `RET_A && !A_is_zero)
+		) begin
+			accept <= 1;
+			reject <= 0;
+		end else begin
+			reject <= 1;
+			accept <= 0;
+		end
+	end else begin
+		accept <= 0;
+		reject <= 0;
+	end
+end
+
+//addr_sel
+always @(*) begin
+	if (addr_type == `BPF_IND) begin
+		addr_sel <= `PACK_ADDR_IND;
+	end else begin
+		addr_sel <= `PACK_ADDR_ABS;
+	end
+end
+
+//regfile_sel
+always @(*) begin
+	if (opcode_class == `BPF_STX) begin
+		regfile_sel <= `REGFILE_IN_X;
+	end else begin
+		regfile_sel <= `REGFILE_IN_A;
+	end
+end
+
+//next state
+
+always @(*) begin
 	case (state)
 		reset: begin
-			//TODO: logic for the rst line
-			PC_rst = 1;
-			if (mem_ready && (!rst)) next_state = fetch;
-			else next_state = reset;
+			if (mem_ready && (!rst)) next_state <= fetch;
+			else next_state <= reset;
 		end fetch: begin
-				PC_sel = `PC_SEL_PLUS_1; //Select PC+1
-				PC_en = 1'b1;   //Update PC
-				inst_mem_rd_en = 1'b1; //Enable reading from memory
-				
-				next_state = decode; //Need to wait a cycle for memory read
+			next_state <= decode; //Need to wait a cycle for memory read
 		end decode: begin
-			//I called this state "decode" to keep it short, but in reality
-			//this does decoding AND the first clock cycle of the instruction
 			case (opcode_class)
-				/**/`BPF_LD: begin 
+				`BPF_LD: begin 
 					//Does this use the immediate, packet memory, scratch memory, or length?
-					if (addr_type == `BPF_IMM) begin //immediate
-						A_sel = `A_SEL_IMM;
-						A_en = 1'b1;
-							
-						next_state = fetch;
-					end else if (addr_type == `BPF_MEM) begin //scratch memory
-						//Note that datapath already takes care of regfile address
-						A_sel = `A_SEL_MEM;
-						A_en = 1'b1;
-							
-						next_state = fetch; //We can get away with this because I'm using
-						//distributed RAM ("asynchronous" reads) in the register file
-						//That is, I don't need to wait a clock cycle for the data to be
-						//ready.
-					end else if (addr_type == `BPF_LEN) begin
-						A_sel = `A_SEL_LEN;
-						A_en = 1'b1;
-							
-						next_state = fetch;
-					end else if (addr_type == `BPF_ABS) begin //packet memory, absolute addressing
-						addr_sel = `PACK_ADDR_ABS;
-						packet_mem_rd_en = 1'b1;
-						//transfer size already taken care of
-							
-						next_state = write_mem_to_A;
-					end else if (addr_type == `BPF_IND) begin //packet memory, indirect addressing
-						addr_sel = `PACK_ADDR_IND;
-						packet_mem_rd_en = 1'b1;
-						//transfer size already taken care of
-							
-						next_state = write_mem_to_A;
-					end else begin
-						//This is an error
-						next_state = reset;
-					end
-					
-				end `BPF_LDX: begin //LDX
-					//Does this use the immediate, packet memory, scratch memory, or length?
-					if (addr_type == `BPF_IMM) begin //immediate
-						X_sel = `X_SEL_IMM;
-						X_en = 1'b1;
-							
-						next_state = fetch;
-					end else if (addr_type == `BPF_MEM) begin //scratch memory
-						//Note that datapath already takes care of regfile address
-						X_sel = `X_SEL_MEM;
-						X_en = 1'b1;
-							
-						next_state = fetch; //We can get away with this because I'm using
-						//distributed RAM ("asynchronous" reads) in the register file
-						//That is, I don't need to wait a clock cycle for the data to be
-						//ready.
-					end else if (addr_type == `BPF_LEN) begin
-						X_sel = `X_SEL_LEN;
-						X_en = 1'b1;
-							
-						next_state = fetch;
-					end else if (addr_type == `BPF_ABS) begin //packet memory, absolute addressing
-						addr_sel = `PACK_ADDR_ABS;
-						packet_mem_rd_en = 1'b1;
-						//transfer size already taken care of
-							
-						next_state = write_mem_to_X;
-					end else if (addr_type == `BPF_IND) begin //packet memory, indirect addressing
-						addr_sel = `PACK_ADDR_IND;
-						packet_mem_rd_en = 1'b1;
-						//transfer size already taken care of
-							
-						next_state = write_mem_to_X;
-					end else if (addr_type == `BPF_MSH) begin //That weird MSH instruction
-						addr_sel = `PACK_ADDR_ABS;
-						packet_mem_rd_en = 1'b1;
-						//transfer size already taken care of
-							
-						next_state = msh_write_mem_to_X;
-					end else begin
-						//This is an error
-						next_state = reset;
-					end
-					
-				end `BPF_ST: begin //ST
-					//scratch_mem[imm] = A
-					regfile_wr_en = 1'b1;
-					regfile_sel = `REGFILE_IN_A;
-					//Note that datapath already takes care of regfile address
-						
-					next_state = fetch;
-				end `BPF_STX: begin //STX
-					//scratch_mem[imm] = X
-					regfile_wr_en = 1'b1;
-					regfile_sel = `REGFILE_IN_X;
-					//Note that datapath already takes care of regfile address
-						
-					next_state = fetch;
-				end `BPF_ALU: begin //ALU
-					//Here we have A op= [X|K], with the exception of the NOT operator
-					//It so happens that ALU_sel and B_sel are already taken care of.
-					//The only thing I really want to do now is make sure enough clock
-					//cycles go by.
-					A_sel = `A_SEL_ALU;
-						
-					//Assume +,-,|,&,^ are single-cycle
-					//Assume <<, >>, *, /, % take 32 cycles
-					case (ALU_sel)
-						`BPF_ADD,`BPF_SUB, `BPF_OR, `BPF_AND, `BPF_XOR:
-							next_state = write_ALU_to_A;
-						default: begin
-							delay_count = 'd31;
-							dest_state_after_countdown = write_ALU_to_A;
-								
-							next_state = countdown;
-						end
-					endcase
-				end `BPF_JMP: begin //JMP
-					//Except for JA, all the jump types use A and B in the ALU
-					//It so happens that B is already selected correctly, ctrl-f
-					//for "assign B_sel"
-						
-					//TODO: is the ALU ready on this clock cycle? What if I get
-					//timing violations?
-					if (jmp_type == `BPF_JA) begin
-						PC_sel = `PC_SEL_PLUS_IMM;
-					end else if (
-						(jmp_type == `BPF_JEQ && eq) ||
-						(jmp_type == `BPF_JGT && gt) ||
-						(jmp_type == `BPF_JGE && ge) ||
-						(jmp_type == `BPF_JSET && set)
+					if (
+						(addr_type == `BPF_IMM) ||
+						(addr_type == `BPF_MEM) ||
+						(addr_type == `BPF_LEN) 
 					) begin
-						PC_sel = `PC_SEL_PLUS_JT;
+						next_state <= fetch;
+					end else if (
+						(addr_type == `BPF_ABS) ||
+						(addr_type == `BPF_IND)
+					) begin
+						next_state <= write_mem_to_A;
 					end else begin
-						PC_sel = `PC_SEL_PLUS_JF;
+						//This is an error
+						next_state <= reset;
 					end
-					PC_en = 1'b1;
-						
-					next_state = fetch; //Is this OK?
-				end `BPF_RET: begin //RET
-					//I hope Vivado is smart enough to optimize this
-						
-					if (retval == `RET_IMM && !imm_is_zero) begin
-						accept = 1;
-					end else if (retval == `RET_X && !X_is_zero) begin
-						accept = 1;
-					end else if (retval == `RET_A && !A_is_zero) begin
-						accept = 1;
+				end `BPF_LDX: begin
+					if (
+						(addr_type == `BPF_IMM) ||
+						(addr_type == `BPF_MEM) ||
+						(addr_type == `BPF_LEN) 
+					) begin
+						next_state <= fetch;
+					end else if (
+						(addr_type == `BPF_ABS) ||
+						(addr_type == `BPF_IND)
+					) begin
+						next_state <= write_mem_to_X;
+					end else if (addr_type == `BPF_MSH) begin
+						next_state <= msh_write_mem_to_X;
 					end else begin
-						reject = 1;
+						//This is an error
+						next_state <= reset;
 					end
-						
-					next_state = reset;
-						
-				end `BPF_MISC: begin //MISC
-					if (miscop == 0) begin //TAX
-						X_sel = `X_SEL_A;
-						X_en = 1'b1;
-					end else begin //TXA
-						A_sel = `A_SEL_X;
-						A_en = 1'b1;
-					end
-						
-					next_state = fetch;
+					
+				end `BPF_ST, `BPF_STX, `BPF_JMP, `BPF_MISC: begin 
+					next_state <= fetch;
+				end `BPF_ALU: begin
+					next_state <= write_ALU_to_A;
+				end `BPF_RET: begin
+					next_state <= reset;
 				end default: begin
-					next_state = reset; //ERROR!
+					next_state <= reset; //ERROR!
 				end
 			endcase
-		end write_mem_to_A: begin
-			A_en = 1'b1;
-			A_sel = `A_SEL_PACKET_MEM;
-			next_state = fetch;
-		end write_ALU_to_A: begin
-			A_en = 1'b1;
-			A_sel = `A_SEL_ALU;
-			next_state = fetch;
-		end write_mem_to_X: begin
-			X_en = 1'b1;
-			X_sel = `X_SEL_PACKET_MEM;
-			next_state = fetch;
-		end msh_write_mem_to_X: begin
-			X_en = 1'b1;
-			X_sel = `X_SEL_MSH;
-			next_state = fetch;
-		end countdown: begin
-			//This is used to wait for long ALU operations
-			delay_count = delay_count - 1;
-			if (delay_count == 0) begin
-				next_state = dest_state_after_countdown;
-			end else begin
-				next_state = countdown;
-			end
+		end write_mem_to_A, write_ALU_to_A, write_mem_to_X, msh_write_mem_to_X: begin
+			next_state <= fetch;
 		end default: begin
 			//ERROR
-			next_state = reset;
+			next_state <= reset;
 		end
 	endcase
 end    

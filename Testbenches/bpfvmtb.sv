@@ -236,6 +236,9 @@ initial begin
 	forwarder_rd_en <= 0;
 	forwarder_done <= 0;
 	
+	//It almost seems like the BRAM "isn't ready yet". So let's try waiting a few clock cycles while we do nothing
+	repeat (20) @(negedge clk);
+	
 	->fill_code_mem;
 	@(fill_code_mem_done);
 	

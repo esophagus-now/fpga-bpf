@@ -68,8 +68,8 @@ bpfcpu # (
 	.packet_addr(cpu_byte_rd_addr),
 	.inst_rd_addr(inst_rd_addr),
 	.transfer_sz(transfer_sz),
-	.accept(cpu_acc),
-	.reject(cpu_rej)
+	.cpu_acc(cpu_acc),
+	.cpu_rej(cpu_rej)
 );
 
 packetmem # (

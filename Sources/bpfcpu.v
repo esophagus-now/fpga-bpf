@@ -25,8 +25,8 @@ module bpfcpu # (parameter
 	output wire [PACKET_BYTE_ADDR_WIDTH-1:0] packet_addr,
 	output wire [CODE_ADDR_WIDTH-1:0] inst_rd_addr,
 	output wire [1:0] transfer_sz,
-	output wire accept,
-	output wire reject
+	output wire cpu_acc,
+	output wire cpu_rej
 );
 
 //There's no way I'll remember what all of these are in a few weeks.
@@ -83,8 +83,8 @@ bpfvm_ctrl controller(
 	.A_is_zero(A_is_zero),
 	.imm_is_zero(imm_is_zero),
 	.X_is_zero(X_is_zero),
-	.accept(accept),
-	.reject(reject)
+	.accept(cpu_acc),
+	.reject(cpu_rej)
 );
 
 bpfvm_datapath # (

@@ -18,4 +18,5 @@ Brief summary of each file:
 - **`regfile.v`**: A simple register file (instantiated in `bpfvm_datapath.v`) implemented as distributed RAM.
 - **`snqueue.v`**: The "job queue" for the snooper. This is used as part of `p3ctrl.v`.
 
-Refer to the Wiki for a high-level view of how these modules are all connected together. Also, the files themselves have some extra details in the comments at the top.
+Here's a quick diagram showing the connections (slightly more detail on the Wiki)
+![test image](https://raw.githubusercontent.com/esophagus-now/fpga-bpf/nodiv/Figures/Verilog%20Modules%20(detailed).png)

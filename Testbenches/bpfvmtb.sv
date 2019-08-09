@@ -12,6 +12,13 @@ and controller. Finally, make all the memory write inputs (aswell as clock and r
 external.
 */
 
+//I don't really know how to properly upload block diagrams to github, so this file
+//uses the following `define to switch between compatibility with bpfvm.v, or with 
+//my block diagram in IP integrator
+
+`define USING_BLOCK_DIAGRAM
+//Comment this out if you're just trying to simulate bpfvm.v
+
 /*
 First, a bunch of defines to make the code easier to deal with.
 These were taken from the BPF reference implementation, and
@@ -130,7 +137,6 @@ initial forever begin
 	@(fill_code_mem);
 	
 	code_mem_wr_addr = 0;
-	rst <= 1;
 	
 	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]                         
 	codewr({8'b0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd13, 32'h800}); //jeq #0x800 jt 2 jf 15    
@@ -149,7 +155,6 @@ initial forever begin
 	codewr({8'h0, 3'b0, `RET_IMM,   `BPF_RET, 8'd0, 8'd0, 32'd65535}); //ret #65535                    
 	codewr({8'h0, 3'b0, `RET_IMM,   `BPF_RET, 8'd0, 8'd0, 32'd0}); //ret #0                            
 
-	rst <= 0;
 	->fill_code_mem_done;
 end
 
@@ -222,7 +227,11 @@ end
 
 initial begin
 	clk <= 0;
+	`ifdef USING_BLOCK_DIAGRAM
+	rst <= 1;
+	`else
 	rst <= 0;
+	`endif
 	code_mem_wr_addr <= 0;
 	code_mem_wr_data <= 0;
 	code_mem_wr_en <= 0;
@@ -235,6 +244,27 @@ initial begin
 	forwarder_rd_addr <= 0;
 	forwarder_rd_en <= 0;
 	forwarder_done <= 0;
+	
+	//Trigger a reset
+	
+	`ifdef USING_BLOCK_DIAGRAM
+	rst <= 0;
+	`else
+	rst <= 1;
+	`endif
+	
+	#20
+	
+	`ifdef USING_BLOCK_DIAGRAM
+	rst <= 1;
+	`else
+	rst <= 0;
+	`endif
+	
+	`ifdef USING_BLOCK_DIAGRAM
+	//Wait for reset time to finish
+	@(negedge DUT.tle_i.bpfcpu_0.rst);
+	`endif
 	
 	//It almost seems like the BRAM "isn't ready yet". So let's try waiting a few clock cycles while we do nothing
 	repeat (20) @(negedge clk);
@@ -257,10 +287,20 @@ end
 //Implements 100 MHz clock (I think)
 always #5 clk <= ~clk;
 
-bpfvm DUT (
+`ifdef USING_BLOCK_DIAGRAM
+tle_wrapper
+`else
+bpfvm
+`endif
+DUT (
 	//TODO: add proper reset signal handling
+`ifdef USING_BLOCK_DIAGRAM
+	.reset(rst),
+	.sys_clock(clk),
+`else
 	.rst(rst),
 	.clk(clk),
+`endif
 	//Interface to an external module which will fill codemem
 	.code_mem_wr_addr(code_mem_wr_addr),
 	.code_mem_wr_data(code_mem_wr_data),

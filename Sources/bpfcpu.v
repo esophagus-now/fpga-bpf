@@ -15,37 +15,45 @@ module bpfcpu # (parameter
 	PACKET_ADDR_WIDTH = (PACKET_BYTE_ADDR_WIDTH - 2),
 	PACKET_DATA_WIDTH = 32
 )(
-	//TODO: pipeline signals
-	//TODO: fix this damned mess of parameters and constants!
 	input wire rst,
 	input wire clk,
+	input wire mem_ready, //Signal from packetmem.v
 	output wire packet_mem_rd_en,
 	output wire inst_mem_rd_en,
 	input wire [CODE_DATA_WIDTH-1:0] inst_mem_data,
-	input wire [PACKET_DATA_WIDTH-1:0] packet_data,
-	output wire [PACKET_ADDR_WIDTH-1:0] packet_addr,
+	input wire [31:0] packet_data, //Hardcoded to 32 bits
+	output wire [PACKET_BYTE_ADDR_WIDTH-1:0] packet_addr,
 	output wire [CODE_ADDR_WIDTH-1:0] inst_rd_addr,
-	output wire [1:0] transfer_sz 
+	output wire [1:0] transfer_sz,
+	output wire cpu_acc,
+	output wire cpu_rej
 );
 
-wire [2:0] A_sel;
-wire [2:0] X_sel;
-wire [1:0] PC_sel;
-wire addr_sel;
-wire A_en;
-wire X_en;
-wire PC_en;
-wire PC_rst;
-wire B_sel;
-wire [3:0] ALU_sel;
-wire [63:0] packet_len; //Should this be an external signal?
-wire regfile_wr_en;
-wire regfile_sel;
-wire [15:0] opcode;
-wire set;
-wire eq;
-wire gt;
-wire ge;
+//There's no way I'll remember what all of these are in a few weeks.
+
+wire [2:0] A_sel; //Select lines for next value of A register
+wire [2:0] X_sel; //Select lines for next value of X register
+wire [1:0] PC_sel; //Select lines for next value of PC register
+wire addr_sel; //Select lines for packet read address (either absolute or indirect address)
+wire A_en; //Enable line for register A
+wire X_en; //Enable line for register X
+wire PC_en; //Enable line for register PC
+wire PC_rst; //Currently not used
+wire B_sel; //Selects second ALU operand (X or immediate)
+wire [3:0] ALU_sel; //Selects ALU operation
+//There is an instruction in BPF which loads A or X with the packet's length,
+//so we'll have to calculate that somehow
+wire [31:0] packet_len; //Should this be an external signal? //Hardcoded to 32 bits
+wire regfile_wr_en; //Write enable for the register file
+wire regfile_sel; //Selects the desired register within the file ("address lines")
+wire [15:0] opcode; //Named subfield of the instruction (for the opcode, in case it wasn't clear)
+wire set; //Output from ALU: A & B != 0
+wire eq; //Output from ALU: A == B
+wire gt; //Output from ALU: A > B
+wire ge; //Output from ALU: A >= B
+wire imm_is_zero; //Output from "ALU": imm == 0 
+wire A_is_zero; //Output from "ALU": A == 0 
+wire X_is_zero; //Output from "ALU": X == 0 
 
 bpfvm_ctrl controller(	
 	.rst(rst),
@@ -70,10 +78,20 @@ bpfvm_ctrl controller(
 	.ge(ge),
 	.packet_mem_rd_en(packet_mem_rd_en),
 	.inst_mem_rd_en(inst_mem_rd_en),
-	.transfer_sz(transfer_sz)
+	.transfer_sz(transfer_sz),
+	.mem_ready(mem_ready),
+	.A_is_zero(A_is_zero),
+	.imm_is_zero(imm_is_zero),
+	.X_is_zero(X_is_zero),
+	.accept(cpu_acc),
+	.reject(cpu_rej)
 );
 
-bpfvm_datapath datapath(
+bpfvm_datapath # (
+	.CODE_ADDR_WIDTH(CODE_ADDR_WIDTH),
+	.CODE_DATA_WIDTH(CODE_DATA_WIDTH),
+	.PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH)
+) datapath (
 	.rst(rst),
 	.clk(clk),
 	.A_sel(A_sel),
@@ -97,7 +115,10 @@ bpfvm_datapath datapath(
 	.gt(gt),
 	.ge(ge),
 	.packet_addr(packet_addr),
-	.PC(inst_rd_addr)
+	.PC(inst_rd_addr),
+	.imm_is_zero(imm_is_zero),
+	.X_is_zero(X_is_zero),
+	.A_is_zero(A_is_zero)
 );
 
 endmodule

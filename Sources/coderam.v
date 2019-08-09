@@ -35,7 +35,7 @@ always @(posedge clk) begin
         if (wr_en) begin
             data[wr_addr] <= wr_data;
         end
-        rd_data = data[rd_addr];
+        rd_data <= data[rd_addr];
     end
 end
 

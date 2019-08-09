@@ -14,26 +14,42 @@ Wires up the BPF CPU core (bpfcpu.v) with instruction and packet memory.
 `define PACKET_DATA_WIDTH 32
 
 module bpfvm(
-	//TODO: add proper signalling for backpressure and valid
+	//TODO: add proper reset signal handling
 	input wire rst,
 	input wire clk,
+	//Interface to an external module which will fill codemem
     input wire [`CODE_ADDR_WIDTH-1:0] code_mem_wr_addr,
     input wire [`CODE_DATA_WIDTH-1:0] code_mem_wr_data,
     input wire code_mem_wr_en,
-    input wire [`PACKET_ADDR_WIDTH-1:0] packet_mem_wr_addr,
-    input wire [`PACKET_DATA_WIDTH-1:0] packet_mem_wr_data,
-    input wire packet_mem_wr_en
+    
+    //Interface to snooper
+    input wire [`PACKET_ADDR_WIDTH-1:0] snooper_wr_addr,
+	input wire [31:0] snooper_wr_data, //Hardcoded to 32 bits. TODO: change this to 64?
+	input wire snooper_wr_en,
+	input wire snooper_done, //NOTE: this must be a 1-cycle pulse.
+	output wire ready_for_snooper,
+    
+	//Interface to forwarder
+	input wire [`PACKET_ADDR_WIDTH-1:0] forwarder_rd_addr,
+	output wire [63:0] forwarder_rd_data,
+	input wire forwarder_rd_en,
+	input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
+	output wire ready_for_forwarder
 );
 
-wire [31:0] inst_rd_addr;
-wire [63:0] inst_mem_data;
+//Wires from codemem to/from CPU
+wire [`CODE_ADDR_WIDTH-1:0] inst_rd_addr;
+wire [`CODE_DATA_WIDTH-1:0] inst_mem_data;
 wire inst_mem_rd_en;
 
-wire [63:0] packet_mem_rd_data;
-wire [`PACKET_BYTE_ADDR_WIDTH-1:0] packet_mem_rd_addr;
-wire packet_mem_rd_en;
-
-wire [1:0] sz;
+//Wires from packetmem to/from CPU
+wire [31:0] cpu_rd_data; //Hardcoded to 32 bits
+wire [`PACKET_BYTE_ADDR_WIDTH-1:0] cpu_byte_rd_addr;
+wire cpu_rd_en;
+wire [1:0] transfer_sz;
+wire ready_for_cpu;
+wire cpu_acc;
+wire cpu_rej;
 	
 bpfcpu # (
 	.CODE_ADDR_WIDTH(`CODE_ADDR_WIDTH),
@@ -44,13 +60,46 @@ bpfcpu # (
 ) theCPU (
 	.rst(rst),
 	.clk(clk),
-	.packet_mem_rd_en(packet_mem_rd_en),
+	.mem_ready(ready_for_cpu),
+	.packet_mem_rd_en(cpu_rd_en),
 	.inst_mem_rd_en(inst_mem_rd_en),
 	.inst_mem_data(inst_mem_data),
-	.packet_data(packet_mem_rd_data),
-	.packet_addr(packet_mem_rd_addr),
+	.packet_data(cpu_rd_data),
+	.packet_addr(cpu_byte_rd_addr),
 	.inst_rd_addr(inst_rd_addr),
-	.transfer_sz(sz)
+	.transfer_sz(transfer_sz),
+	.cpu_acc(cpu_acc),
+	.cpu_rej(cpu_rej)
+);
+
+packetmem # (
+    .ADDR_WIDTH(`PACKET_ADDR_WIDTH) 
+) packmem (
+	.clk(clk),
+	.p3ctrl_rst(rst),
+	
+	//Interface to snooper
+	.snooper_wr_addr(snooper_wr_addr),
+	.snooper_wr_data(snooper_wr_data),
+	.snooper_wr_en(snooper_wr_en),
+	.snooper_done(snooper_done), //NOTE: this must be a 1-cycle pulse.
+	.ready_for_snooper(ready_for_snooper),
+	
+	//Interface to CPU
+	.cpu_byte_rd_addr(cpu_byte_rd_addr),
+	.transfer_sz(transfer_sz),
+	.cpu_rd_data(cpu_rd_data),
+	.cpu_rd_en(cpu_rd_en),
+	.cpu_rej(cpu_rej),
+	.cpu_acc(cpu_acc), //NOTE: this must be a 1-cycle pulse.
+	.ready_for_cpu(ready_for_cpu),
+	
+	//Interface to forwarder
+	.forwarder_rd_addr(forwarder_rd_addr),
+	.forwarder_rd_data(forwarder_rd_data),
+	.forwarder_rd_en(forwarder_rd_en),
+	.forwarder_done(forwarder_done), //NOTE: this must be a 1-cycle pulse.
+	.ready_for_forwarder(ready_for_forwarder)
 );
 
 codemem # (
@@ -66,17 +115,4 @@ codemem # (
 	.rd_en(inst_mem_rd_en)
 );
 
-/*
-TODO: update this for new packetmem!
-packetmem packet_memory(
-	.clk(clk),
-	.rd_addr(packet_mem_rd_addr),
-	.sz(sz), 
-	.rd_en(packet_mem_rd_en), 
-	.odata(packet_mem_rd_data),
-	.wr_addr(packet_mem_wr_addr),
-	.idata(packet_mem_wr_data),
-	.wr_en(packet_mem_wr_en)
-);
-*/
 endmodule

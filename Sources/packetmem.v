@@ -18,34 +18,31 @@ in order to arbitrate everything.
 module packetmem#(parameter
     ADDR_WIDTH = 10 
 )(
-	//TODO: add pipeline signalling
 	input wire clk,
+	input wire p3ctrl_rst,
 	
 	//Interface to snooper
 	input wire [ADDR_WIDTH-1:0] snooper_wr_addr,
-	input wire [63:0] snooper_wr_data,
+	input wire [31:0] snooper_wr_data, //Hardcoded to 32 bits. TODO: should this get changed to 64?
 	input wire snooper_wr_en,
 	input wire snooper_done, //NOTE: this must be a 1-cycle pulse.
-	//TODO: decide whether or not to make this interface simpler
-	//or to possibly do some kind of handshaking
+	output wire ready_for_snooper,
 	
 	//Interface to CPU
 	input wire [ADDR_WIDTH+2-1:0] cpu_byte_rd_addr,
 	input wire [1:0] transfer_sz,
-	output wire [32:0] cpu_rd_data,
+	output wire [31:0] cpu_rd_data, //Hardcoded to 32 bits
 	input wire cpu_rd_en,
 	input wire cpu_rej,
 	input wire cpu_acc, //NOTE: this must be a 1-cycle pulse.
-	//TODO: decide whether or not to make this interface simpler
-	//or to possibly do some kind of handshaking
+	output wire ready_for_cpu,
 	
 	//Interface to forwarder
 	input wire [ADDR_WIDTH-1:0] forwarder_rd_addr,
 	output wire [63:0] forwarder_rd_data,
 	input wire forwarder_rd_en,
-	input wire forwarder_done //NOTE: this must be a 1-cycle pulse.
-	//TODO: decide whether or not to make this interface simpler
-	//or to possibly do some kind of handshaking
+	input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
+	output wire ready_for_forwarder
 );
 
 //Forward declare wires for memories
@@ -73,6 +70,7 @@ wire [1:0] sn_sel, cpu_sel, fwd_sel;
 //Instantiate the controller
 p3_ctrl dispatcher (
 	.clk(clk),
+	.rst(p3ctrl_rst),
 	.A_done(snooper_done),
 	.B_acc(cpu_acc), //Special case for me: B can "accept" a memory buffer and send it to C
 	.B_rej(cpu_rej), //or it can "reject" it and send it back to A
@@ -81,6 +79,11 @@ p3_ctrl dispatcher (
 	.cpu_sel(cpu_sel),
 	.fwd_sel(fwd_sel)
 );
+
+//Generate ready lines for the three agents
+assign ready_for_snooper = sn_sel != 0;
+assign ready_for_cpu = cpu_sel != 0;
+assign ready_for_forwarder = fwd_sel != 0;
 
 //Special thing to do for CPU: apply the read size adapter
 //TODO: fix these variable names, they are extremely confusing!!
@@ -108,7 +111,7 @@ painfulmuxes # (
 	.from_sn({snooper_wr_addr, snooper_wr_data, snooper_wr_en}),
 	//Format is {addr, rd_en}
 	.from_cpu({cpu_rd_addr, cpu_rd_en}),
-	.from_fwd({fwd_rd_addr, fwd_rd_en}),
+	.from_fwd({forwarder_rd_addr, forwarder_rd_en}),
 	//Format is {rd_data}
 	.from_ping(ping_do),
 	.from_pang(pang_do),

@@ -16,7 +16,7 @@ external.
 //uses the following `define to switch between compatibility with bpfvm.v, or with 
 //my block diagram in IP integrator
 
-`define USING_BLOCK_DIAGRAM
+//`define USING_BLOCK_DIAGRAM
 //Comment this out if you're just trying to simulate bpfvm.v
 
 /*

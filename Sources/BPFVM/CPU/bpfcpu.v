@@ -18,6 +18,7 @@ module bpfcpu # (parameter
 	input wire rst,
 	input wire clk,
 	input wire mem_ready, //Signal from packetmem.v
+	input wire [31:0] packet_len, //Hardcoded to 32 bits
 	output wire packet_mem_rd_en,
 	output wire inst_mem_rd_en,
 	input wire [CODE_DATA_WIDTH-1:0] inst_mem_data,
@@ -43,7 +44,6 @@ wire B_sel; //Selects second ALU operand (X or immediate)
 wire [3:0] ALU_sel; //Selects ALU operation
 //There is an instruction in BPF which loads A or X with the packet's length,
 //so we'll have to calculate that somehow
-wire [31:0] packet_len; //Should this be an external signal? //Hardcoded to 32 bits
 wire regfile_wr_en; //Write enable for the register file
 wire regfile_sel; //Selects the desired register within the file ("address lines")
 wire [15:0] opcode; //Named subfield of the instruction (for the opcode, in case it wasn't clear)

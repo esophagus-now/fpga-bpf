@@ -53,6 +53,7 @@ Ping/Pang/Pung:
 `define WRITE_WIDTH 32
 `define READ_WIDTH 64
 `define ENABLE_BIT 1
+`define PACKLEN_WIDTH 32
 module painfulmuxes # (parameter
 	ADDR_WIDTH = 10
 )(
@@ -62,16 +63,16 @@ module painfulmuxes # (parameter
 	//Format is {addr, rd_en}
 	input wire [ADDR_WIDTH + `ENABLE_BIT -1:0] from_cpu,
 	input wire [ADDR_WIDTH + `ENABLE_BIT -1:0] from_fwd,
-	//Format is {rd_data}
-	input wire [`READ_WIDTH -1:0] from_ping,
-	input wire [`READ_WIDTH -1:0] from_pang,
-	input wire [`READ_WIDTH -1:0] from_pung,
+	//Format is {rd_data, packet_len}
+	input wire [`READ_WIDTH + `PACKLEN_WIDTH -1:0] from_ping,
+	input wire [`READ_WIDTH + `PACKLEN_WIDTH -1:0] from_pang,
+	input wire [`READ_WIDTH + `PACKLEN_WIDTH -1:0] from_pung,
 	
 	//Outputs
 	//Nothing to output to snooper, besides maybe a "ready" line
-	//Format is {rd_data}
-	output wire [`READ_WIDTH -1:0] to_cpu,
-	output wire [`READ_WIDTH -1:0] to_fwd,
+	//Format is {rd_data, packet_len}
+	output wire [`READ_WIDTH + `PACKLEN_WIDTH -1:0] to_cpu,
+	output wire [`READ_WIDTH + `PACKLEN_WIDTH -1:0] to_fwd,
 	//Format here is {addr, wr_data, wr_en, rd_en}
 	output wire [ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT -1:0] to_ping,
 	output wire [ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT -1:0] to_pang,
@@ -80,13 +81,14 @@ module painfulmuxes # (parameter
 	//Selects
 	input wire [1:0] sn_sel,
 	input wire [1:0] cpu_sel,
-	input wire [1:0] fwd_sel
+	input wire [1:0] fwd_sel,
+	
+	output wire [1:0] ping_sel,
+	output wire [1:0] pang_sel,
+	output wire [1:0] pung_sel
 );
 
 	//Compute the select lines for ping/pang/pung
-wire [1:0] ping_sel;
-wire [1:0] pang_sel;
-wire [1:0] pung_sel;
 
 muxselinvert muxthing(
 	.sn_sel(sn_sel),
@@ -97,19 +99,7 @@ muxselinvert muxthing(
 	.pung_sel(pung_sel)
 );
 
-//Not needed at the moment. Might possibly need one for ferrying
-//along ready signals
-/*
-mux3 # () sn_mux (
-	.A(),
-	.B(),
-	.C(),
-	.sel(),
-	.D()
-);
-*/
-
-mux3 # (`READ_WIDTH) cpu_mux (
+mux3 # (`READ_WIDTH + `PACKLEN_WIDTH) cpu_mux (
 	.A(from_ping),
 	.B(from_pang),
 	.C(from_pung),
@@ -117,7 +107,7 @@ mux3 # (`READ_WIDTH) cpu_mux (
 	.D(to_cpu)
 );
 
-mux3 # (`READ_WIDTH) fwd_mux (
+mux3 # (`READ_WIDTH + `PACKLEN_WIDTH) fwd_mux (
 	.A(from_ping),
 	.B(from_pang),
 	.C(from_pung),

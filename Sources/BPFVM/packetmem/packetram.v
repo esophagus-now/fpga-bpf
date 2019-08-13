@@ -76,7 +76,7 @@ assign addrb = addra + 1;
 
 always @(posedge clk) begin
 	if (len_rst) len <= 0;
-	else if (addra > len) len <= addra;
+	else if (addra > len && wr_en) len <= addra;
 end
 
 packetram_wrapped # ( 

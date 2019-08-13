@@ -275,6 +275,12 @@ initial begin
 	->write_rejectable_packet;
 	
 	@(write_rejectable_packet_done);
+	->write_rejectable_packet;
+	
+	@(write_rejectable_packet_done);
+	->write_rejectable_packet;
+	
+	@(write_rejectable_packet_done);
 	->write_acceptable_packet;
 	
 	wait(forwarder_done);

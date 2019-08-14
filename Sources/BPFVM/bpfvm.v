@@ -14,7 +14,6 @@ Wires up the BPF CPU core (bpfcpu.v) with instruction and packet memory.
 `define PACKET_DATA_WIDTH 32
 
 module bpfvm(
-	//TODO: add proper reset signal handling
 	input wire rst,
 	input wire clk,
 	//Interface to an external module which will fill codemem

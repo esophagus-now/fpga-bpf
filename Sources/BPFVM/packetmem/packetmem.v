@@ -119,7 +119,7 @@ painfulmuxes # (
 	.from_sn({snooper_wr_addr, snooper_wr_data, snooper_wr_en}),
 	//Format is {addr, rd_en}
 	.from_cpu({cpu_rd_addr, cpu_rd_en}),
-	.from_fwd({forwarder_rd_addr, forwarder_rd_en}),
+	.from_fwd({forwarder_rd_addr[ADDR_WIDTH-2:0], 1'b0, forwarder_rd_en}), //This essentially multiplies the forwarder's read address by 2
 	//Format is {rd_data, packet_len}
 	.from_ping({ping_do, ping_len}),
 	.from_pang({pang_do, pang_len}),

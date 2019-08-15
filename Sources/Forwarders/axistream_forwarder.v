@@ -29,8 +29,12 @@ module axistream_forwarder # (parameter
 	input wire [31:0] len_to_forwarder
 );
 
+//Calculate max addr
+wire [ADDR_WIDTH-1:0] maxaddr;
+assign maxaddr = len_to_forwarder[ADDR_WIDTH-1:1] + len_to_forwarder[0];
+
 assign TDATA = forwarder_rd_data;
-assign TLAST = (forwarder_rd_addr == len_to_forwarder - 1);
+assign TLAST = (forwarder_rd_addr == maxaddr);
 
 wire [ADDR_WIDTH-1:0] next_addr;
 assign next_addr = (ready_for_forwarder && forwarder_rd_en) ? (TLAST ? 0 : forwarder_rd_addr+1) : forwarder_rd_addr;
@@ -77,6 +81,6 @@ always @(posedge clk) begin
 	TVALID <= TVALID_next;
 end
 
-assign forwarder_done = TLAST;
+assign forwarder_done = TLAST && ready_for_forwarder;
 
 endmodule

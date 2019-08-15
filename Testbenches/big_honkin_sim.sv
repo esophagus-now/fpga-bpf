@@ -7,12 +7,67 @@ some fake data for the snooper to look at. The general idea is to see that packe
 correctly accepted/rejected, correctly forwarded out, and to get an idea on performance.
 */
 
-//TODO: Fix this
+/*
+First, a bunch of defines to make the code easier to deal with.
+These were taken from the BPF reference implementation, and
+modified to match Verilog's syntax
+*/
+/* instruction classes */
+`ifndef BPF_LD
+`define		BPF_LD		3'b000
+`define		BPF_LDX		3'b001
+`define		BPF_ST		3'b010
+`define		BPF_STX		3'b011
+`define		BPF_ALU		3'b100
+`define		BPF_JMP		3'b101
+`define		BPF_RET		3'b110
+`define		BPF_MISC	3'b111
+
+/* ld/ldx fields */
+//Fetch size 
+`define		BPF_W		2'b00 //Word, half-word, and byte
+`define		BPF_H		2'b01
+`define		BPF_B		2'b10
+//Addressing mode
+`define		BPF_IMM 	3'b000 
+`define		BPF_ABS		3'b001
+`define		BPF_IND		3'b010 
+`define		BPF_MEM		3'b011
+`define		BPF_LEN		3'b100
+`define		BPF_MSH		3'b101
+//ALU operation select
+`define		BPF_ADD		4'b0000
+`define		BPF_SUB		4'b0001
+`define		BPF_MUL		4'b0010
+`define		BPF_DIV		4'b0011
+`define		BPF_OR		4'b0100
+`define		BPF_AND		4'b0101
+`define		BPF_LSH		4'b0110
+`define		BPF_RSH		4'b0111
+`define		BPF_NEG		4'b1000
+`define		BPF_MOD		4'b1001
+`define		BPF_XOR		4'b1010
+//Jump types
+`define		BPF_JA		3'b000
+`define		BPF_JEQ		3'b001
+`define		BPF_JGT		3'b010
+`define		BPF_JGE		3'b011
+`define		BPF_JSET	3'b100
+//Compare-to value select
+`define		BPF_COMP_IMM	1'b0
+`define 	BPF_COMP_X		1'b1
+//Return register select
+`define		RET_IMM		2'b00
+`define		RET_X		2'b01
+`define		RET_A		2'b10
+
 `define CODE_ADDR_WIDTH 10
 `define CODE_DATA_WIDTH 64 
 `define PACKET_BYTE_ADDR_WIDTH 12
 `define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 2)
 `define PACKET_DATA_WIDTH 32
+
+`endif
 
 module big_honkin_sim();
 reg clk;
@@ -50,10 +105,54 @@ reg TREADY;
 
 integer fd;
 
+task codewr;
+input [63:0] dat;
+begin
+	wait(clk == 0);
+	code_mem_wr_en = 1;
+	code_mem_wr_data = dat;
+	@(negedge clk);
+	code_mem_wr_en = 0;
+	code_mem_wr_addr = code_mem_wr_addr + 1;
+end
+endtask
+
+event fill_code_mem, fill_code_mem_done;
+
+initial forever begin
+	@(fill_code_mem);
+	
+	code_mem_wr_addr = 0;
+	
+	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]                         
+	codewr({8'b0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd13, 32'h800}); //jeq #0x800 jt 2 jf 15    
+	codewr({8'h0, `BPF_ABS, `BPF_B, `BPF_LD, 8'h88, 8'h88, 32'd23}); //ldb [23]                         
+	codewr({8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd11, 32'h0006}); //jeq #0x6 jt 4 jf 15     
+	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h0, 8'h0, 32'd20}); //ldh [20]                           
+	codewr({8'h0, `BPF_JSET, `BPF_COMP_IMM, `BPF_JMP, 8'd9, 8'd0, 32'h1FFF}); //jset 0x1FFF jt 15 jf 6  
+	codewr({8'h0, `BPF_MSH, `BPF_B, `BPF_LDX, 8'h0, 8'h0, 32'd14}); //ldxb_msh addr 14                  
+	codewr({8'h0, `BPF_IND, `BPF_H, `BPF_LD, 8'h0, 8'h0, 32'd14}); //ldh ind x+14                       
+	codewr({8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd2, 32'h0064}); //jeq 0x64 jt 9 jf 11      
+	codewr({8'h0, `BPF_IND, `BPF_H, `BPF_LD, 8'h0, 8'h0, 32'd16}); //ldh ind x+16                       
+	codewr({8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd3, 8'd4, 32'h00C8}); //jeq 0xC8 jt 14 jf 15    
+	codewr({8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd3, 32'h00C8}); //jeq 0xC8 jt 12 jf 15    
+	codewr({8'h0, `BPF_IND, `BPF_H, `BPF_LD, 8'h0, 8'h0, 32'd16}); //ldh ind x+16                      
+	codewr({8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd1, 32'h0064}); //jeq 0x64 jt 14 jf 15    
+	codewr({8'h0, 3'b0, `RET_IMM,   `BPF_RET, 8'd0, 8'd0, 32'd65535}); //ret #65535                    
+	codewr({8'h0, 3'b0, `RET_IMM,   `BPF_RET, 8'd0, 8'd0, 32'd0}); //ret #0                            
+
+	->fill_code_mem_done;
+end
+
+event start_snoop;
+event done_processing;
+
+integer packets_left = 0;
+
 initial begin
 	//Initial values for reg variables
 	clk <= 0;
-	//rst <= ???;
+	rst <= 1; //Trigger a reset
 	
 	code_mem_wr_addr <= 0;
 	code_mem_wr_data <= 0;
@@ -62,14 +161,47 @@ initial begin
 	data <= 0;
 	strobe <= 0;
 	
-	TREADY <= 0;
+	TREADY <= 1;
 	
-	//Read in the frivers
+	//Read in the drivers
 	fd = $fopen("big_honkin_test_data.mem", "r"); //TODO: fill this file
 	while($fgetc(fd) != "\n") begin end //Skip first line of comments
+	
+	//Wait a few clock cycles before de-asserting rst
+	#20
+	rst <= 0;
+	
+	//It almost seems like the BRAM "isn't ready yet". So let's try waiting a few clock cycles while we do nothing
+	repeat (20) @(negedge clk);
+	
+	->fill_code_mem;
+	@(fill_code_mem_done);
+	
+	->start_snoop;
+	
+	@(done_processing);
+	#40
+	$finish;
 end
 
 always #5 clk <= ~clk;
+
+initial begin
+	@(start_snoop);
+	forever begin 
+		@(posedge clk);
+		if (!$feof(fd)) begin
+			$fscanf(fd, "%h%b", data, strobe);
+		end 
+	end
+end
+
+always @(posedge clk) begin
+	if (snooper_done) packets_left++;
+	if (VM.cpu_rej) packets_left--;
+	if (forwarder_done) packets_left--;
+	if (packets_left == 0 && $feof(fd)) ->done_processing;
+end
 
 bpfvm VM (
 	.rst(rst),

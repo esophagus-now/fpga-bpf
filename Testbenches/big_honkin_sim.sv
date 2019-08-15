@@ -1,23 +1,11 @@
 `timescale 1ns / 1ps
 /*
-bpfvmtb.sv
+big_honkin_sim.sv
 
-A testbench for the bpfvm block diagram. Sadly, I don't know how to properly add
-a block diagram into a repo. So, for the time being, I'll describe what it is:
-
-Simply put, the bpfvm_datapath and bpfvm_ctrl are wired together in the obvious
-way (i.e. connect matching signal names). Then, instantiate one packetmem and one
-codemem, and connect the memory read inputs to the remaining outputs of the datapath
-and controller. Finally, make all the memory write inputs (aswell as clock and rest)
-external.
+This testbenche's purpose is to wire up a snooper and forwarder into the BPFVM, and generate
+some fake data for the snooper to look at. The general idea is to see that packets are 
+correctly accepted/rejected, correctly forwarded out, and to get an idea on performance.
 */
-
-//I don't really know how to properly upload block diagrams to github, so this file
-//uses the following `define to switch between compatibility with bpfvm.v, or with 
-//my block diagram in IP integrator
-
-//`define USING_BLOCK_DIAGRAM
-//Comment this out if you're just trying to simulate bpfvm.v
 
 /*
 First, a bunch of defines to make the code easier to deal with.
@@ -81,41 +69,41 @@ modified to match Verilog's syntax
 
 `endif
 
-module bpfvmtb();
-
-reg rst;
+module big_honkin_sim();
 reg clk;
+reg rst;
 
 //Interface to an external module which will fill codemem
 reg [`CODE_ADDR_WIDTH-1:0] code_mem_wr_addr;
 reg [`CODE_DATA_WIDTH-1:0] code_mem_wr_data;
 reg code_mem_wr_en;
 
-//Interface to snooper
-reg [`PACKET_ADDR_WIDTH-1:0] snooper_wr_addr;
-reg [31:0] snooper_wr_data; //Hardcoded to 32 bits. TODO: change this to 64?
-reg snooper_wr_en;
-reg snooper_done; //NOTE: this must be a 1-cycle pulse.
+//Interface from BPFVM to snooper
+wire [`PACKET_ADDR_WIDTH-1:0] snooper_wr_addr;
+wire [31:0] snooper_wr_data; //Hardcoded to 32 bits. TODO: change this to 64?
+wire snooper_wr_en;
+wire snooper_done; //NOTE: this must be a 1-cycle pulse.
 wire ready_for_snooper;
 
-//Interface to forwarder
-reg [`PACKET_ADDR_WIDTH-1:0] forwarder_rd_addr;
+//Interface from BPFVM to forwarder
+wire [`PACKET_ADDR_WIDTH-1:0] forwarder_rd_addr;
 wire [63:0] forwarder_rd_data;
-reg forwarder_rd_en;
-reg forwarder_done; //NOTE: this must be a 1-cycle pulse.
+wire forwarder_rd_en;
+wire forwarder_done; //NOTE: this must be a 1-cycle pulse.
 wire ready_for_forwarder;
+wire [31:0] len_to_forwarder;
 
-task snoopwr;
-input [31:0] dat;
-begin
-	wait(clk == 0);
-	snooper_wr_en = 1;
-	snooper_wr_data = dat;
-	@(negedge clk);
-	snooper_wr_en = 0;
-	snooper_wr_addr = snooper_wr_addr + 1;
-end
-endtask
+//Wires that the snooper is snooping on
+reg [31:0] data;
+reg strobe;
+
+//AXI Stream interface
+wire [63:0] TDATA;
+wire TVALID;
+wire TLAST;
+reg TREADY;
+
+integer fd;
 
 task codewr;
 input [63:0] dat;
@@ -129,8 +117,6 @@ begin
 end
 endtask
 
-event write_rejectable_packet, write_rejectable_packet_done;
-event write_acceptable_packet, write_acceptable_packet_done;
 event fill_code_mem, fill_code_mem_done;
 
 initial forever begin
@@ -158,113 +144,32 @@ initial forever begin
 	->fill_code_mem_done;
 end
 
-initial forever begin
-	@(write_rejectable_packet);
-	
-	wait(ready_for_snooper); //I'm smiling to myself as I write "snooper" everywhere
-	//You know that 80s song "dreamer"? "snooooo-per!... you know you are a snooo-per!"
-	snooper_wr_addr = 0;
-	
-	//This packet should be rejected
-	snoopwr(32'hDEADBEEF);
-	snoopwr(32'hBEEFCAFE);
-	snoopwr(32'hCAFEDEAD);
-	snoopwr(32'h01234567);
-	snoopwr(32'h89ABCDEF);
-	snoopwr(32'h55555555);
-	snoopwr(32'hAAAAAAAA);
-	snoopwr(32'h00000000);
-	snoopwr(32'h11111111);
-	snoopwr(32'h22222222);
-	snoopwr(32'hFFFFFFFF);
-	
-	@(negedge clk);
-	snooper_done = 1;
-	@(negedge clk);
-	snooper_done = 0;
-	->write_rejectable_packet_done;
-end
+event start_snoop;
+event done_processing;
 
-
-initial forever begin
-	@(write_acceptable_packet);
-	
-	wait(ready_for_snooper); //I'm smiling to myself as I write "snooper" everywhere
-	//You know that 80s song "dreamer"? "snooooo-per!... you know you are a snooo-per!"
-	snooper_wr_addr = 0;
-	
-	//This packet should be accepted
-	snoopwr(32'h70b31760);
-	snoopwr(32'ha09f782b);
-	snoopwr(32'hcba3f197);
-	snoopwr(32'h08004500);
-	snoopwr(32'h00288860);
-	snoopwr(32'h00000206);
-	snoopwr(32'hfd248064);
-	snoopwr(32'hf13dc0a8);
-	snoopwr(32'h010100c8);
-	snoopwr(32'h0064acbe);
-	snoopwr(32'hbdc10000);
-	snoopwr(32'h00005004);
-	snoopwr(32'h05c80b21);
-	snoopwr(32'h0000FFFF);
-	
-	@(negedge clk);
-	snooper_done = 1;
-	@(negedge clk);
-	snooper_done = 0;
-	->write_acceptable_packet_done;
-end
-
-//This pretends to be a forwarder which always finishes after 50 cycles
-initial forever begin
-	wait(ready_for_forwarder);
-	repeat (49) @(negedge clk);
-	forwarder_done = 1;
-	@(negedge clk);
-	forwarder_done = 0;
-end
+integer packets_left = 0;
 
 initial begin
+	//Initial values for reg variables
 	clk <= 0;
-	`ifdef USING_BLOCK_DIAGRAM
-	rst <= 1;
-	`else
-	rst <= 0;
-	`endif
+	rst <= 1; //Trigger a reset
+	
 	code_mem_wr_addr <= 0;
 	code_mem_wr_data <= 0;
 	code_mem_wr_en <= 0;
 	
-	snooper_wr_addr <= 0;
-	snooper_wr_data <= 0;
-	snooper_wr_en <= 0;
-	snooper_done <= 0;
+	data <= 0;
+	strobe <= 0;
 	
-	forwarder_rd_addr <= 0;
-	forwarder_rd_en <= 0;
-	forwarder_done <= 0;
+	TREADY <= 1;
 	
-	//Trigger a reset
+	//Read in the drivers
+	fd = $fopen("big_honkin_test_data.mem", "r"); //TODO: fill this file
+	while($fgetc(fd) != "\n") begin end //Skip first line of comments
 	
-	`ifdef USING_BLOCK_DIAGRAM
-	rst <= 0;
-	`else
-	rst <= 1;
-	`endif
-	
+	//Wait a few clock cycles before de-asserting rst
 	#20
-	
-	`ifdef USING_BLOCK_DIAGRAM
-	rst <= 1;
-	`else
 	rst <= 0;
-	`endif
-	
-	`ifdef USING_BLOCK_DIAGRAM
-	//Wait for reset time to finish
-	@(negedge DUT.tle_i.bpfcpu_0.rst);
-	`endif
 	
 	//It almost seems like the BRAM "isn't ready yet". So let's try waiting a few clock cycles while we do nothing
 	repeat (20) @(negedge clk);
@@ -272,41 +177,35 @@ initial begin
 	->fill_code_mem;
 	@(fill_code_mem_done);
 	
-	->write_rejectable_packet;
+	->start_snoop;
 	
-	@(write_rejectable_packet_done);
-	->write_rejectable_packet;
-	
-	@(write_rejectable_packet_done);
-	->write_rejectable_packet;
-	
-	@(write_rejectable_packet_done);
-	->write_acceptable_packet;
-	
-	wait(forwarder_done);
+	@(done_processing);
 	#40
 	$finish;
 end
 
-//initial #1000 $finish;
-
-//Implements 100 MHz clock (I think)
 always #5 clk <= ~clk;
 
-`ifdef USING_BLOCK_DIAGRAM
-tle_wrapper
-`else
-bpfvm
-`endif
-DUT (
-	//TODO: add proper reset signal handling
-`ifdef USING_BLOCK_DIAGRAM
-	.reset(rst),
-	.sys_clock(clk),
-`else
+initial begin
+	@(start_snoop);
+	forever begin 
+		@(posedge clk);
+		if (!$feof(fd)) begin
+			$fscanf(fd, "%h%b", data, strobe);
+		end 
+	end
+end
+
+always @(posedge clk) begin
+	if (snooper_done) packets_left++;
+	if (VM.cpu_rej) packets_left--;
+	if (forwarder_done) packets_left--;
+	if (packets_left == 0 && $feof(fd)) ->done_processing;
+end
+
+bpfvm VM (
 	.rst(rst),
 	.clk(clk),
-`endif
 	//Interface to an external module which will fill codemem
 	.code_mem_wr_addr(code_mem_wr_addr),
 	.code_mem_wr_data(code_mem_wr_data),
@@ -324,7 +223,66 @@ DUT (
 	.forwarder_rd_data(forwarder_rd_data),
 	.forwarder_rd_en(forwarder_rd_en),
 	.forwarder_done(forwarder_done), //NOTE: this must be a 1-cycle pulse.
-	.ready_for_forwarder(ready_for_forwarder)
+	.ready_for_forwarder(ready_for_forwarder),
+	.len_to_forwarder(len_to_forwarder)
+
 );
 
+
+//Snooper don't care what you had for dinner...
+//He just snoops and snoops and snoops and snoops and snoops...
+// (Snooter, Josh Woodward)
+
+//SNOOPS I did it again!
+// (Britney Spears)
+
+//Snoooooper! You know you are a snooooooper!
+// (Dreamer?)
+
+//We come on the Snoop John B... my grandfather and me...
+// (Sloop John B.)
+
+//Snoopercalafragilisticexpialadocious...
+// (Mary Poppins)
+
+//Snooper Trooper love is gonna find me...
+// (Super Trooper, ABBA)
+
+//Snoop! There it is...
+// (Space Jam theme)
+
+//Snoop... on... me... (snoop! on! me!)
+// (Take on me, A-HA)
+dataval_snooper # (
+	.FLITS_PER_PACKET(15) //I think this should be big enough
+) el_snoopo (
+	.clk(clk),
+	.data(data),
+	.strobe(strobe),
+	
+	//Interface to packet mem
+	.wr_addr(snooper_wr_addr),
+	.wr_data(snooper_wr_data),
+	.mem_ready(ready_for_snooper),
+	.wr_en(snooper_wr_en),
+	.done(snooper_done)
+);
+
+axistream_forwarder forward_unto_dawn(
+	.clk(clk),
+	
+	//AXI Stream interface
+	.TDATA(TDATA),
+	.TVALID(TVALID),
+	.TLAST(TLAST),
+	.TREADY(TREADY),	
+	
+	//Interface to packetmem
+	.forwarder_rd_addr(forwarder_rd_addr),
+	.forwarder_rd_data(forwarder_rd_data),
+	.forwarder_rd_en(forwarder_rd_en),
+	.forwarder_done(forwarder_done), //NOTE: this must be a 1-cycle pulse.
+	.ready_for_forwarder(ready_for_forwarder),
+	.len_to_forwarder(len_to_forwarder)
+);
 endmodule

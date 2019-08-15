@@ -14,7 +14,6 @@ Wires up the BPF CPU core (bpfcpu.v) with instruction and packet memory.
 `define PACKET_DATA_WIDTH 32
 
 module bpfvm(
-	//TODO: add proper reset signal handling
 	input wire rst,
 	input wire clk,
 	//Interface to an external module which will fill codemem
@@ -34,7 +33,8 @@ module bpfvm(
 	output wire [63:0] forwarder_rd_data,
 	input wire forwarder_rd_en,
 	input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
-	output wire ready_for_forwarder
+	output wire ready_for_forwarder,
+	output wire [31:0] len_to_forwarder
 );
 
 //Wires from codemem to/from CPU
@@ -50,6 +50,7 @@ wire [1:0] transfer_sz;
 wire ready_for_cpu;
 wire cpu_acc;
 wire cpu_rej;
+wire [31:0] len_to_cpu;
 	
 bpfcpu # (
 	.CODE_ADDR_WIDTH(`CODE_ADDR_WIDTH),
@@ -61,6 +62,7 @@ bpfcpu # (
 	.rst(rst),
 	.clk(clk),
 	.mem_ready(ready_for_cpu),
+	.packet_len(len_to_cpu),
 	.packet_mem_rd_en(cpu_rd_en),
 	.inst_mem_rd_en(inst_mem_rd_en),
 	.inst_mem_data(inst_mem_data),
@@ -93,13 +95,15 @@ packetmem # (
 	.cpu_rej(cpu_rej),
 	.cpu_acc(cpu_acc), //NOTE: this must be a 1-cycle pulse.
 	.ready_for_cpu(ready_for_cpu),
+	.len_to_cpu(len_to_cpu),
 	
 	//Interface to forwarder
 	.forwarder_rd_addr(forwarder_rd_addr),
 	.forwarder_rd_data(forwarder_rd_data),
 	.forwarder_rd_en(forwarder_rd_en),
 	.forwarder_done(forwarder_done), //NOTE: this must be a 1-cycle pulse.
-	.ready_for_forwarder(ready_for_forwarder)
+	.ready_for_forwarder(ready_for_forwarder),
+	.len_to_forwarder(len_to_forwarder)
 );
 
 codemem # (

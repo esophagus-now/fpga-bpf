@@ -64,11 +64,20 @@ module packet_ram # (parameter
     input [DATA_WIDTH-1:0] dia,
     input wr_en,
     input rd_en, //read enable
-    output [2*DATA_WIDTH-1:0] doa
+    output [2*DATA_WIDTH-1:0] doa,
+    
+    //Signals for managing length
+    input wire len_rst, //Somehow set this equal to (cpu_rej || fwd_done)
+    output reg [31:0] len = 0
 );
 
 wire [ADDR_WIDTH-1:0] addrb;
 assign addrb = addra + 1;
+
+always @(posedge clk) begin
+	if (len_rst) len <= 0;
+	else if (addra > len && wr_en) len <= addra;
+end
 
 packetram_wrapped # ( 
     .ADDR_WIDTH(ADDR_WIDTH),

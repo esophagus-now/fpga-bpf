@@ -15,8 +15,6 @@ fiddled with the verilog until the schematic matched my drawing.
 This "datapath" is intended to be controlled by the FSM defined in bpfvm_ctrl.v
 */
 
-//TODO: Make PC width a parameter, then do the complicated dance Xilinx forces me to
-//in order to update the IP packaged from the block diagram
 module bpfvm_datapath # (parameter
 	CODE_ADDR_WIDTH = 10,
 	CODE_DATA_WIDTH = 64,
@@ -44,7 +42,6 @@ module bpfvm_datapath # (parameter
     output wire eq,
     output wire gt,
     output wire ge,
-    //TODO: Add addr width parameters
     output wire [PACKET_BYTE_ADDR_WIDTH-1:0] packet_addr,
     output reg [CODE_ADDR_WIDTH-1:0] PC = 0,
     output wire A_is_zero,
@@ -164,7 +161,6 @@ end
 
 //packet_addr mux
 assign packet_addr = (addr_sel == 1'b0) ? imm : (X+imm);
-//This should cover all the cases?
 
 //ALU operand B select
 assign B = (B_sel == 1'b1) ? X : imm;

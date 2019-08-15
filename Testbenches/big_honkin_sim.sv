@@ -7,67 +7,13 @@ some fake data for the snooper to look at. The general idea is to see that packe
 correctly accepted/rejected, correctly forwarded out, and to get an idea on performance.
 */
 
-/*
-First, a bunch of defines to make the code easier to deal with.
-These were taken from the BPF reference implementation, and
-modified to match Verilog's syntax
-*/
-/* instruction classes */
-`ifndef BPF_LD
-`define		BPF_LD		3'b000
-`define		BPF_LDX		3'b001
-`define		BPF_ST		3'b010
-`define		BPF_STX		3'b011
-`define		BPF_ALU		3'b100
-`define		BPF_JMP		3'b101
-`define		BPF_RET		3'b110
-`define		BPF_MISC	3'b111
-
-/* ld/ldx fields */
-//Fetch size 
-`define		BPF_W		2'b00 //Word, half-word, and byte
-`define		BPF_H		2'b01
-`define		BPF_B		2'b10
-//Addressing mode
-`define		BPF_IMM 	3'b000 
-`define		BPF_ABS		3'b001
-`define		BPF_IND		3'b010 
-`define		BPF_MEM		3'b011
-`define		BPF_LEN		3'b100
-`define		BPF_MSH		3'b101
-//ALU operation select
-`define		BPF_ADD		4'b0000
-`define		BPF_SUB		4'b0001
-`define		BPF_MUL		4'b0010
-`define		BPF_DIV		4'b0011
-`define		BPF_OR		4'b0100
-`define		BPF_AND		4'b0101
-`define		BPF_LSH		4'b0110
-`define		BPF_RSH		4'b0111
-`define		BPF_NEG		4'b1000
-`define		BPF_MOD		4'b1001
-`define		BPF_XOR		4'b1010
-//Jump types
-`define		BPF_JA		3'b000
-`define		BPF_JEQ		3'b001
-`define		BPF_JGT		3'b010
-`define		BPF_JGE		3'b011
-`define		BPF_JSET	3'b100
-//Compare-to value select
-`define		BPF_COMP_IMM	1'b0
-`define 	BPF_COMP_X		1'b1
-//Return register select
-`define		RET_IMM		2'b00
-`define		RET_X		2'b01
-`define		RET_A		2'b10
+`include "../Sources/bpf_defs.vh" 
 
 `define CODE_ADDR_WIDTH 10
 `define CODE_DATA_WIDTH 64 
 `define PACKET_BYTE_ADDR_WIDTH 12
 `define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 2)
 `define PACKET_DATA_WIDTH 32
-
-`endif
 
 module big_honkin_sim();
 reg clk;

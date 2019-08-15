@@ -45,12 +45,7 @@ module p3_ctrl(
 	
 	output wire [1:0] sn_sel,
 	output wire [1:0] cpu_sel,
-	output wire [1:0] fwd_sel/*,
-	output wire [1:0] ping_sel,
-	output wire [1:0] pang_sel,
-	output wire [1:0] pung_sel
-	*/
-	//The ping/pang/pung_sel logic was moved into painfulmuxes.v
+	output wire [1:0] fwd_sel
 );
 
 snqueue snq(

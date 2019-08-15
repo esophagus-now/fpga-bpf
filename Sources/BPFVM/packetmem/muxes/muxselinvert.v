@@ -3,13 +3,15 @@
 muxselinvert.v
 
 I'm really going off the deep end here. I just spent like 30 minutes drawing K-maps
-like an undergraduate! 
+like a schmuck! 
 
 This module is part of packetmem.v. It converts the mux selections for SN, CPU, and
 FWD to the corresponing "inverse" selections for ping, pang, and pung.
 
 Basically, this is here to implement the rule that:
 "If agent A selects buffer P, then buffer P selects agent A"
+
+See the file kmaps.csv in this repository
 */
 
 
@@ -57,6 +59,7 @@ Pang select bit 0 = FW'+SN'
 Pung select bit 1 = FW+CP(S'+N')
 
 Pung select bit 0 = FW+SN
+
 */
 
 endmodule

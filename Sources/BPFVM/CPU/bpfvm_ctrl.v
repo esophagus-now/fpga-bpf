@@ -3,12 +3,13 @@
 
 bpfvm_ctrl.v
 
-This implements a finite state machine that correctly twiddles the
-datapath's select and enable lines depending on the instruction. It
-assumes that the code and packet memories have single-cycle access.
+This implements a finite state machine that correctly twiddles the datapath's myriad 
+select and enable lines depending on the instruction. It assumes that the code and 
+packet memories have single-cycle access.
 
-This attempts to write the same controller in a different style, which
-Vivado will possibly like more.
+This file is actually an overhaul of the original "switch statement" FSM. Now it splits
+each output and the next state logic into separate always blocks. This had a pretty decent
+imporvement on the synthesized result.
 
 */
 
@@ -17,94 +18,13 @@ First, a bunch of defines to make the code easier to deal with.
 These were taken from the BPF reference implementation, and
 modified to match Verilog's syntax
 */
-/* instruction classes */
-`define		BPF_LD		3'b000
-`define		BPF_LDX		3'b001
-`define		BPF_ST		3'b010
-`define		BPF_STX		3'b011
-`define		BPF_ALU		3'b100
-`define		BPF_JMP		3'b101
-`define		BPF_RET		3'b110
-`define		BPF_MISC	3'b111
-
-/* ld/ldx fields */
-//Fetch size 
-`define		BPF_W		2'b00 //Word, half-word, and byte
-`define		BPF_H		2'b01
-`define		BPF_B		2'b10
-//Addressing mode
-`define		BPF_IMM 	3'b000 
-`define		BPF_ABS		3'b001
-`define		BPF_IND		3'b010 
-`define		BPF_MEM		3'b011
-`define		BPF_LEN		3'b100
-`define		BPF_MSH		3'b101
-//Named constants for A register MUX
-`define		A_SEL_IMM 	3'b000
-`define		A_SEL_PACKET_MEM 3'b001
-// I noticed that both these selections do the same thing
-//`define		A_SEL_ABS	3'b001
-//`define		A_SEL_IND	3'b010 
-`define		A_SEL_MEM	3'b011
-`define		A_SEL_LEN	3'b100
-`define		A_SEL_MSH	3'b101
-`define		A_SEL_ALU	3'b110
-`define		A_SEL_X		3'b111
-//Named constants for X register MUX
-`define		X_SEL_IMM 	3'b000 
-`define		X_SEL_PACKET_MEM 3'b001
-// I noticed that both these selections do the same thing
-//`define		X_SEL_ABS	3'b001
-//`define		X_SEL_IND	3'b010 
-`define		X_SEL_MEM	3'b011
-`define		X_SEL_LEN	3'b100
-`define		X_SEL_MSH	3'b101
-`define		X_SEL_A		3'b111
-//Absolute or indirect address select
-`define		PACK_ADDR_ABS	1'b0
-`define		PACK_ADDR_IND	1'b1
-//A or X select for regfile write
-`define		REGFILE_IN_A	1'b0
-`define		REGFILE_IN_X	1'b1
-//ALU operand B select
-`define		ALU_B_SEL_IMM	1'b0
-`define		ALU_B_SEL_X		1'b1
-//ALU operation select
-`define		BPF_ADD		4'b0000
-`define		BPF_SUB		4'b0001
-`define		BPF_MUL		4'b0010
-`define		BPF_DIV		4'b0011
-`define		BPF_OR		4'b0100
-`define		BPF_AND		4'b0101
-`define		BPF_LSH		4'b0110
-`define		BPF_RSH		4'b0111
-`define		BPF_NEG		4'b1000
-`define		BPF_MOD		4'b1001
-`define		BPF_XOR		4'b1010
-//Jump types
-`define		BPF_JA		3'b000
-`define		BPF_JEQ		3'b001
-`define		BPF_JGT		3'b010
-`define		BPF_JGE		3'b011
-`define		BPF_JSET	3'b100
-//Compare-to value select
-`define		BPF_COMP_IMM	1'b0
-`define 	BPF_COMP_X		1'b1
-//PC value select
-`define		PC_SEL_PLUS_1	2'b00
-`define		PC_SEL_PLUS_JT	2'b01
-`define		PC_SEL_PLUS_JF	2'b10
-`define		PC_SEL_PLUS_IMM	2'b11
-//Return register select
-`define		RET_IMM		2'b00
-`define		RET_X		2'b01
-`define		RET_A		2'b10
+`include "bpf_defs.vh" 
 
 //I use "logic" where I intend a combinational signal, but I need to
 //use reg to make Verilog's compiler happy
 `define logic reg
 
-`define STATE_WIDTH 4 //This should be big enough
+`define STATE_WIDTH 4 //This should be wide enough
 
 module bpfvm_ctrl(
     input wire rst,
@@ -143,22 +63,19 @@ wire [2:0] opcode_class;
 assign opcode_class = opcode[2:0];
 wire [2:0] addr_type;
 assign addr_type = opcode[7:5];
-//wire [1:0] transfer_sz;
+
 assign transfer_sz = opcode[4:3]; 
-//wire B_sel;
+
 assign B_sel = opcode[3];
-//wire [3:0] alu_sel;
+
 assign ALU_sel = opcode[7:4];
-//TODO: quadruple-check encodings match properly in the alu module
+
 wire [2:0] jmp_type;
 assign jmp_type = opcode[6:4];
 wire [4:0] miscop;
 assign miscop = opcode[7:3];
 wire [1:0] retval;
 assign retval = opcode[4:3];
-
-reg [4:0] delay_count; //TODO: replace this with better logic
-//This is used to wait for the ALU to finish long operations
 
 //State encoding. Does Vivado automatically re-encode these for better performance?
 parameter 	fetch = 0, decode = 1, write_mem_to_A = 2, write_mem_to_X = 3,
@@ -171,7 +88,6 @@ initial state = reset; //NOTE: likely to not synthesize correctly
 reg [`STATE_WIDTH-1:0] dest_state_after_countdown;
 
 always @(posedge clk) begin
-    //TODO: reset logic
     if (rst) state <= reset;
     else state <= next_state;
 end
@@ -402,7 +318,7 @@ always @(*) begin
 		end decode: begin
 			case (opcode_class)
 				`BPF_LD: begin 
-					//Does this use the immediate, packet memory, scratch memory, or length?
+					//Check if we're using immediate, packet memory, scratch memory, or length
 					if (
 						(addr_type == `BPF_IMM) ||
 						(addr_type == `BPF_MEM) ||

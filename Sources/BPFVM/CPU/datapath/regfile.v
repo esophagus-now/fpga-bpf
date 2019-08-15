@@ -7,8 +7,8 @@ The BPF VM defines "scratch memory" where you can load and store values (in addi
 to being able to load data from the packet itself). This is basically a fancy way of
 saying a "register file", so that's what this module implements.
 
-Note that I (intentionally) use asynchronous reads (and synchronous writes). First,
-this is the behaviour I wanted, and also, I have confirmed that Vivado synthesis this
+Note that I (intentionally) use ASYNchronous reads and SYNchronous writes. First,
+this is the behaviour I wanted, and also, I have confirmed that Vivado synthesizes this
 as LUT RAM.
 
 This module is instantiated as part of bpfvm_datapath.

@@ -14,7 +14,7 @@ Why do we need to read two words at once? This is in order to support single-
 cycle unaligned memory reads. It is possible that a single read will span two
 words in memory, so we use this dual-port trick to read both words at once.
 
-By the way, packetramtb.sv has a simple testbench for this file.
+By the way, packetramtb.sv has a(N OUT OF DATE) simple testbench for this file.
 
 
 * https://www.xilinx.com/support/documentation/sw_manuals/xilinx11/xst.pdf 
@@ -67,7 +67,8 @@ module packet_ram # (parameter
     output [2*DATA_WIDTH-1:0] doa,
     
     //Signals for managing length
-    input wire len_rst, //Somehow set this equal to (cpu_rej || fwd_done)
+    //TODO: This logic is spread all over the place. Fix that.
+    input wire len_rst,
     output reg [31:0] len = 0
 );
 

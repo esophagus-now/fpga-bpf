@@ -7,8 +7,13 @@ This file is best described by a diagram available in the repo's wiki. It can
 also be found under Figures/pingpangpung.png.
 
 Essentially, instantiates three packetram modules. It also instantiates a bunch
-of fiddly glue logic, including the p3ctrl module and the painfulmuxes modules 
+of fiddly glue logic, including the p3ctrl module and the painfulmuxes module
 in order to arbitrate everything.
+
+One more thing: the CPU needs an extra "adapter". See, the CPU can ask for up
+to 32 bits starting at any byte address. Our technique is to read two consecutive
+words from the packet memory and select the parts we want to keep. The read_size_adapter
+is what does this.
 
 */
 

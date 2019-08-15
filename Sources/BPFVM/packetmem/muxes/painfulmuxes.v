@@ -1,15 +1,16 @@
 `timescale 1ns / 1ps
 /*
-Ugh...
 painfulmuxes.v
 
 This is the very tedious set of MUXes that connect the agents and buffers
 
-I've been putting this off for too long...
-Well, in the end it wasn't that hard
+I had been putting this off for too long...
+but in the end it wasn't that hard
 
-Each input wire on each agent/buffer needs a 3-mux
 */
+
+
+//Each input wire on each agent/buffer needs a 3-mux
 
 module mux3 # (parameter
 	WIDTH = 1
@@ -115,9 +116,9 @@ mux3 # (`READ_WIDTH + `PACKLEN_WIDTH) fwd_mux (
 	.D(to_fwd)
 );
 
-//One agent always hes exclusive control of a buffer, even though it
-//doesn't use the read and write ports at the same time. Pad these
-//input with zeros
+//One agent always has exclusive control of a buffer, even though it
+//doesn't use the read and write ports at the same time. Replace unused
+//inputs/outputs with zeros
 
 //Format here is {addr, wr_data, wr_en, rd_en}
 wire [ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT -1:0] from_sn_padded;

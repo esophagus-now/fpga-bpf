@@ -8,6 +8,12 @@ operations can run in a single cycle. If they can't, I need to do a little extra
 the bpfvm_ctrl module.
 
 This module is instantiated as part of bpfvm_datapath. 
+
+IMPORTANT (AND QUESTIONABLE) DESIGN DECISION:
+This ALU does not support any multi-cycle instructions. That is, there is no multiple,
+divide, or mod. First, I did this ti ismplify the design. And second, I doubt that many
+programs would need this anyway.  However, I may end up putting it in sometime in the 
+future.
 */
 
 
@@ -60,6 +66,7 @@ always @(ALU_sel, A, B) begin
     endcase
 end
 
+//These are used as the predicates for JMP instructions
 assign eq = (A == B) ? 1'b1 : 1'b0;
 assign gt = (A > B) ? 1'b1 : 1'b0;
 assign ge = gt | eq;

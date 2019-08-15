@@ -6,7 +6,7 @@ Wires up the BPF CPU core (bpfcpu.v) with instruction and packet memory.
 
 */
 
-//TODO: Fix this
+//TODO: Should these be parameters? And by the way, there are a lot of hardcoded widths
 `define CODE_ADDR_WIDTH 10
 `define CODE_DATA_WIDTH 64 
 `define PACKET_BYTE_ADDR_WIDTH 12
@@ -92,7 +92,7 @@ packetmem # (
 	.transfer_sz(transfer_sz),
 	.cpu_rd_data(cpu_rd_data),
 	.cpu_rd_en(cpu_rd_en),
-	.cpu_rej(cpu_rej),
+	.cpu_rej(cpu_rej), //NOTE: this must be a 1-cycle pulse.
 	.cpu_acc(cpu_acc), //NOTE: this must be a 1-cycle pulse.
 	.ready_for_cpu(ready_for_cpu),
 	.len_to_cpu(len_to_cpu),

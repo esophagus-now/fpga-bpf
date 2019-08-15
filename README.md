@@ -30,7 +30,9 @@ The repository is not super organized right now, but I've left some comments at 
 
 ## What I'm working on right now
 
-- Creating a fairly comprehensive testbench for final assembly (i.e. a snooper, BPFVM, and forwarder). I call this my *big honkin' sim*.
+- General cleanup of files and code
+- Improving documentation for correctness, readability, and completeness.
+- Actually trying this design on an FPGA
 
 ### Stuff I'll probably need to do in the future
 

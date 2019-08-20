@@ -32,12 +32,11 @@ The repository is not super organized right now, but I've left some comments at 
 
 - General cleanup of files and code
 - Improving documentation for correctness, readability, and completeness.
-- Actually trying this design on an FPGA
 
 ### Stuff I'll probably need to do in the future
 
 - Create a whole bunch of different snoopers for different underlying protocols
 - Create a whole bunch of different forwarders (e.g. off-chip storage, sending out over the network, maybe even saving to a hard drive, etc)
-- Take measurements to see which elements could be optimized
+- Take measurements to see which elements could/should be optimized
 - (If necessary) pipeline the BPF CPU for extra speed. This would also entail pipelining the ALU.
 - Make the BPF VM's external interface AXI-compatible (shudder)

@@ -15,9 +15,9 @@ module axistream_forwarder # (parameter
 	input wire clk,
 	
 	//AXI Stream interface
-	output wire [63:0] TDATA,
+	output wire [63:0] TDATA, //Registered in another module
 	output reg TVALID = 0,
-	output wire TLAST,
+	output reg TLAST,
 	input wire TREADY,	
 	
 	//Interface to packetmem
@@ -33,11 +33,14 @@ module axistream_forwarder # (parameter
 wire [ADDR_WIDTH-1:0] maxaddr;
 assign maxaddr = len_to_forwarder[ADDR_WIDTH-1:1] + len_to_forwarder[0];
 
-assign TDATA = forwarder_rd_data;
-assign TLAST = (forwarder_rd_addr == maxaddr);
+assign TDATA = forwarder_rd_data; 
+
+wire TLAST_next;
+assign TLAST_next = (forwarder_rd_addr == maxaddr && forwarder_rd_en);
+//The next flit in TDATA is the last, in this case 
 
 wire [ADDR_WIDTH-1:0] next_addr;
-assign next_addr = (ready_for_forwarder && forwarder_rd_en) ? (TLAST ? 0 : forwarder_rd_addr+1) : forwarder_rd_addr;
+assign next_addr = (ready_for_forwarder && forwarder_rd_en) ? ((forwarder_rd_addr == maxaddr) ? 0 : forwarder_rd_addr+1) : forwarder_rd_addr;
 
 //We need to enable a read under the following circumstances:
 // TVALID	|	TREADY	|	ready_for_forwarder |	rd_en
@@ -79,8 +82,9 @@ assign TVALID_next = forwarder_rd_en || (!TREADY && TVALID);
 always @(posedge clk) begin
 	forwarder_rd_addr <= next_addr;
 	TVALID <= TVALID_next;
+	TLAST <= TLAST_next;
 end
 
-assign forwarder_done = TLAST && ready_for_forwarder;
+assign forwarder_done = TLAST_next && ready_for_forwarder;
 
 endmodule

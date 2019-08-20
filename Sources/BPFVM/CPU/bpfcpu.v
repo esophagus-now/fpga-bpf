@@ -68,7 +68,6 @@ bpfvm_ctrl controller(
 	.PC_rst(PC_rst),
 	.B_sel(B_sel),
 	.ALU_sel(ALU_sel),
-	.packet_len(packet_len),
 	.regfile_wr_en(regfile_wr_en),
 	.regfile_sel(regfile_sel),
 	.opcode(opcode),

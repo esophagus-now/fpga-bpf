@@ -39,7 +39,6 @@ module bpfvm_ctrl(
     output `logic PC_rst,
     output wire B_sel,
     output wire [3:0] ALU_sel,
-    output wire [31:0] packet_len, //Hardcoded to 32 bits
     output `logic regfile_wr_en,
     output `logic regfile_sel,
     input wire [15:0] opcode,
@@ -371,7 +370,5 @@ always @(*) begin
 		end
 	endcase
 end    
-
-assign packet_len = 0; //TODO: update this when I figure out where to get the info
 
 endmodule

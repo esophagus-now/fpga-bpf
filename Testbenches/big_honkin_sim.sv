@@ -39,11 +39,13 @@ wire forwarder_done; //NOTE: this must be a 1-cycle pulse.
 wire ready_for_forwarder;
 wire [31:0] len_to_forwarder;
 
-//Wires that the snooper is snooping on
-reg [31:0] data;
-reg strobe;
+//AXI Stream interface into snooper
+reg [31:0] snoop_tdata;
+reg snoop_tvalid;
+reg snoop_tready;
+reg snoop_tlast;
 
-//AXI Stream interface
+//AXI Stream interface out of forwarder
 wire [63:0] TDATA;
 wire TVALID;
 wire TLAST;
@@ -104,8 +106,10 @@ initial begin
 	code_mem_wr_data <= 0;
 	code_mem_wr_en <= 0;
 	
-	data <= 0;
-	strobe <= 0;
+	snoop_tdata <= 0;
+	snoop_tvalid <= 0;
+	snoop_tready <= 0;
+	snoop_tlast <= 0;
 	
 	TREADY <= 1;
 	
@@ -137,7 +141,7 @@ initial begin
 	forever begin 
 		@(posedge clk);
 		if (!$feof(fd)) begin
-			$fscanf(fd, "%h%b", data, strobe);
+			$fscanf(fd, "%h%b%b%b", snoop_tdata, snoop_tvalid, snoop_tready, snoop_tlast);
 		end 
 	end
 end
@@ -199,12 +203,12 @@ bpfvm VM (
 
 //Snoop... on... me... (snoop! on! me!)
 // (Take on me, A-HA)
-dataval_snooper # (
-	.FLITS_PER_PACKET(15) //I think this should be big enough
-) el_snoopo (
+axistream_snooper el_snoopo (
 	.clk(clk),
-	.data(data),
-	.strobe(strobe),
+	.TDATA(snoop_tdata),
+	.TVALID(snoop_tvalid),
+	.TREADY(snoop_tready),
+	.TLAST(snoop_tlast),
 	
 	//Interface to packet mem
 	.wr_addr(snooper_wr_addr),

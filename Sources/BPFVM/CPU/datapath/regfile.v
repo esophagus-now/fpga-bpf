@@ -17,6 +17,7 @@ This module is instantiated as part of bpfvm_datapath.
 
 module regfile(
     input wire clk,
+    input wire rst,
     input wire [3:0] addr,
     input wire [31:0] idata,
     input wire wr_en,
@@ -29,9 +30,26 @@ reg [31:0] scratch [0:15];
 //odata's value is found by selecting one of the storage registers usign a MUX
 assign odata = scratch[addr];
 
-//At clock edge, write new contents at right(write) location
+//At clock edge, perform right write wright rite of writing to right write location
 always @(posedge clk) begin
-    if (wr_en == 1'b1) begin
+	if (rst) begin
+		scratch[0] <= 0;
+		scratch[1] <= 0;
+		scratch[2] <= 0;
+		scratch[3] <= 0;
+		scratch[4] <= 0;
+		scratch[5] <= 0;
+		scratch[6] <= 0;
+		scratch[7] <= 0;
+		scratch[8] <= 0;
+		scratch[9] <= 0;
+		scratch[10] <= 0;
+		scratch[11] <= 0;
+		scratch[12] <= 0;
+		scratch[13] <= 0;
+		scratch[14] <= 0;
+		scratch[15] <= 0;
+	end else if (wr_en == 1'b1) begin
         scratch[addr] <= idata;
     end
 end

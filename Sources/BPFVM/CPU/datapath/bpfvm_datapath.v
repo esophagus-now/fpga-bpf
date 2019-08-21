@@ -178,6 +178,7 @@ alu myalu (
 
 regfile scratchmem (
     .clk(clk),
+    .rst(rst),
     .addr(imm[3:0]),
     .idata(scratch_idata),
     .odata(scratch_odata),

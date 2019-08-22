@@ -27,7 +27,7 @@ assign clock_en = rd_en | wr_en;
 
 coderam # (.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH)) myram (
     .clk(clk),
-    .ce(clock_en),
+    .en(clock_en),
     .wr_addr(wr_addr),
     .wr_data(wr_data),
     .wr_en(wr_en),

@@ -14,15 +14,15 @@ Okay, I've confirmed this uses BRAMs.
 */
 
 //Undefine this for normal usage
-`define PRELOAD_TEST_PROGRAM
+//`define PRELOAD_TEST_PROGRAM
 
 module coderam # (parameter
     ADDR_WIDTH = 10,
     DATA_WIDTH = 64, //TODO: I might try shrinking the opcodes at some point
-    localparam DEPTH = 2**ADDR_WIDTH
+    localparam DEPTH = /*2**ADDR_WIDTH*/ 256 //This is to see if using a single BRAM gets rid of slice LUTs
 )(
     input wire clk,
-    input wire ce, //Clock enable
+    input wire en, //Clock enable
     input wire [ADDR_WIDTH-1:0] wr_addr,
     input wire [DATA_WIDTH-1:0] wr_data,
     input wire wr_en,
@@ -57,7 +57,7 @@ end
 `endif
 
 always @(posedge clk) begin
-    if (ce) begin
+    if (en) begin
         if (wr_en) begin
             data[wr_addr] <= wr_data;
         end

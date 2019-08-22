@@ -1,11 +1,10 @@
 `timescale 1ns / 1ps
 /*
-packetfilt.v
+axistream_packetfilt.v
 
-Intended to be a top-level module for a packaged IP. For now, it only grafts an AXI 
-slave onto the interface for adding new instructions. In the future, it should also
-include some way to add a parameterizable number of snoopers as well as manage their
-configuration.
+Represents one particular variation of the FPGA-BPF. This one uses AXILite to control
+whether the machine is started/stopped, as well as to send in new instructions. It also
+includes an AXI Stream snooper and forwarder.
 */
 
 //TODO: Should these be parameters? And by the way, there are a lot of hardcoded widths
@@ -15,7 +14,7 @@ configuration.
 `define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 2)
 `define PACKET_DATA_WIDTH 32
 
-module packetfilt # (
+module axistream_packetfilt # (
     parameter AXI_ADDR_WIDTH = 32, // width of the AXI address bus
     parameter [31:0] BASEADDR = 32'h00000000 // the register file's system base address 
 )(
@@ -53,61 +52,41 @@ module packetfilt # (
     output wire                      s_axi_bvalid,
     input  wire                      s_axi_bready,
     
-    //Interface to snooper
-    input wire [`PACKET_ADDR_WIDTH-1:0] snooper_wr_addr,
-	input wire [31:0] snooper_wr_data, //Hardcoded to 32 bits. TODO: change this to 64?
-	input wire snooper_wr_en,
-	input wire snooper_done, //NOTE: this must be a 1-cycle pulse.
-	output wire ready_for_snooper,
-    
-	//Interface to forwarder
-	input wire [`PACKET_ADDR_WIDTH-1:0] forwarder_rd_addr,
-	output wire [63:0] forwarder_rd_data,
-	input wire forwarder_rd_en,
-	input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
-	output wire ready_for_forwarder,
-	output wire [31:0] len_to_forwarder
-);
-
-    
-// User Ports          
-wire status_strobe; // Strobe logic for register 'Status' (pulsed when the register is read from the bus)
-wire [15:0] status_num_packets_dropped; // Value of register 'Status'; field 'num_packets_dropped'
-wire control_strobe; // Strobe logic for register 'Control' (pulsed when the register is written from the bus)
-wire [0:0] control_start; // Value of register 'Control'; field 'start'
-wire inst_low_strobe; // Strobe logic for register 'inst_low' (pulsed when the register is written from the bus)
-wire [31:0] inst_low_value; // Value of register 'inst_low'; field 'value'
-wire inst_high_strobe; // Strobe logic for register 'inst_high' (pulsed when the register is written from the bus)
-wire [31:0] inst_high_value; // Value of register 'inst_high'; field 'value'
-
-
-//Interface to codemem
-wire [`CODE_ADDR_WIDTH-1:0] code_mem_wr_addr;
-wire [`CODE_DATA_WIDTH-1:0] code_mem_wr_data;
-wire code_mem_wr_en;
-
-regstrb2mem read_inst_regs (
-	.clk(axi_aclk),
-
-	//Interface to codemem
-	.code_mem_wr_addr(code_mem_wr_addr),
-	.code_mem_wr_data(code_mem_wr_data),
-	.code_mem_wr_en(code_mem_wr_en),
+	//AXI Stream interface for forwarder
+	output wire [63:0] fwd_TDATA, //Registered in another module
+	output wire fwd_TVALID,
+	output wire fwd_TLAST,
+	input wire fwd_TREADY,
 	
-	//Interface from regs
-	.inst_high_value(inst_high_value),
-	.inst_high_strobe(inst_high_strobe),
-	.inst_low_value(inst_low_value),
-	.inst_low_strobe(inst_low_strobe),
-	
-	.control_start(control_start)
+	//AXI Stream interface
+	input wire [`PACKET_DATA_WIDTH-1:0] snoop_TDATA,
+	input wire snoop_TVALID,
+	input wire snoop_TREADY, //Yes, this is an input. Remember that we're snooping!
+	input wire snoop_TLAST
 );
+    
+//Interface to snooper
+wire [`PACKET_ADDR_WIDTH-1:0] snooper_wr_addr;
+wire [31:0] snooper_wr_data; //Hardcoded to 32 bits. TODO: change this to 64?
+wire snooper_wr_en;
+wire snooper_done; //NOTE: this must be a 1-cycle pulse.
+wire ready_for_snooper;
 
-packet_filter_regs #(
+//Interface to forwarder
+wire [`PACKET_ADDR_WIDTH-1:0] forwarder_rd_addr;
+wire [63:0] forwarder_rd_data;
+wire forwarder_rd_en;
+wire forwarder_done; //NOTE: this must be a 1-cycle pulse.
+wire ready_for_forwarder;
+wire [31:0] len_to_forwarder;
+
+
+
+packetfilt # (
     .AXI_ADDR_WIDTH(AXI_ADDR_WIDTH), // width of the AXI address bus
     .BASEADDR(BASEADDR) // the register file's system base address 
-) regmap (
-    // Clock and Reset
+) theFilter (   
+	// Clock and Reset
 	.axi_aclk(axi_aclk),
 	.axi_aresetn(axi_aresetn),
                                      
@@ -140,26 +119,6 @@ packet_filter_regs #(
 	.s_axi_bvalid(s_axi_bvalid),
 	.s_axi_bready(s_axi_bready),
     
-    // User Ports          
-	.status_strobe(status_strobe), // Strobe logic for register 'Status' (pulsed when the register is read from the bus)
-	.status_num_packets_dropped(status_num_packets_dropped), // Value of register 'Status', field 'num_packets_dropped'
-	.control_strobe(control_strobe), // Strobe logic for register 'Control' (pulsed when the register is written from the bus)
-	.control_start(control_start), // Value of register 'Control', field 'start'
-	.inst_low_strobe(inst_low_strobe), // Strobe logic for register 'inst_low' (pulsed when the register is written from the bus)
-	.inst_low_value(inst_low_value), // Value of register 'inst_low', field 'value'
-	.inst_high_strobe(inst_high_strobe), // Strobe logic for register 'inst_high' (pulsed when the register is written from the bus)
-	.inst_high_value(inst_high_value) // Value of register 'inst_high', field 'value'
-);
-
-
-bpfvm the_VM(
-	.rst(!axi_aresetn && control_start),
-	.clk(axi_aclk),
-	//Interface to an external module which will fill codemem
-	.code_mem_wr_addr(code_mem_wr_addr),
-	.code_mem_wr_data(code_mem_wr_data),
-	.code_mem_wr_en(code_mem_wr_en),
-    
     //Interface to snooper
 	.snooper_wr_addr(snooper_wr_addr),
 	.snooper_wr_data(snooper_wr_data), //Hardcoded to 32 bits. TODO: change this to 64?
@@ -176,4 +135,43 @@ bpfvm the_VM(
 	.len_to_forwarder(len_to_forwarder)
 );
 
+axistream_snooper # (
+	.DATA_WIDTH(`PACKET_DATA_WIDTH),
+	.ADDR_WIDTH(`PACKET_ADDR_WIDTH)
+) el_snoopo (
+	.clk(axi_aclk),
+	
+	//AXI Stream interface
+	.TDATA(snoop_TDATA),
+	.TVALID(snoop_TVALID),
+	.TREADY(snoop_TREADY), //Yes, this is an input. Remember that we're snooping!
+	.TLAST(snoop_TLAST),
+	
+	//Interface to packet mem
+	.wr_addr(snooper_wr_addr),
+	.wr_data(snooper_wr_data),
+	.mem_ready(ready_for_snooper),
+	.wr_en(snooper_wr_en),
+	.done(snooper_done)
+);
+
+axistream_forwarder # (
+	.ADDR_WIDTH(`PACKET_ADDR_WIDTH)
+) forward_unto_dawn (
+	.clk(axi_aclk),
+	
+	//AXI Stream interface
+	.TDATA(fwd_TDATA), //Registered in another module
+	.TVALID(fwd_TVALID),
+	.TLAST(fwd_TLAST),
+	.TREADY(fwd_TREADY),	
+	
+	//Interface to packetmem
+	.forwarder_rd_addr(forwarder_rd_addr),
+	.forwarder_rd_data(forwarder_rd_data),
+	.forwarder_rd_en(forwarder_rd_en),
+	.forwarder_done(forwarder_done), //NOTE: this must be a 1-cycle pulse.
+	.ready_for_forwarder(ready_for_forwarder),
+	.len_to_forwarder(len_to_forwarder)
+);
 endmodule

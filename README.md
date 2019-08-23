@@ -30,8 +30,7 @@ The repository is not super organized right now, but I've left some comments at 
 
 ## What I'm working on right now
 
-- Adding AXI compatibility, and testing that it works properly
-- Reducing logic cost (in particular, for some reason, coderam uses over 400 LUTs but packetram uses exactly *zero*. I don't understand why this is happening, since the code is nearly identical; in fact, coderam is even simpler than packetram)
+- More rigorous in-FPGA testing
 - General cleanup of files and code
 - Improving documentation for correctness, readability, and completeness.
 
@@ -39,6 +38,7 @@ The repository is not super organized right now, but I've left some comments at 
 
 - Create a whole bunch of different snoopers for different underlying protocols
 - Create a whole bunch of different forwarders (e.g. off-chip storage, sending out over the network, maybe even saving to a hard drive, etc)
+- Reduce logic/area cost
 - Take measurements to see which elements could/should be optimized
 - (If necessary) pipeline the BPF CPU for extra speed. This would also entail pipelining the ALU.
 - Try to find an outlet to publish this work. Workshop at a conference, maybe?

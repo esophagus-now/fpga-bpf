@@ -20,7 +20,7 @@ table
 	1		0		0		:	1;
 	?		0		1		:	0;
 	?		1		0		:	1;
-	?		1		1		:	1;
+	?		1		1		:	0;
 endtable
 
 endprimitive
@@ -29,12 +29,11 @@ endprimitive
 /*Great, primitives are not supported. I guess I have to do a kmap
 {strb | wr_en}|	00	01	11	10
 --------------|----------------
-curvld		0 |	0	0	1	1
-			1 |	1	0	1	1
+curvld		0 |	0	0	0	1
+			1 |	1	0	0	1
 
-nxt_vld = strb || (curvld && !wr_en);
-
-Yeah, makes sense
+nxt_vld = (strb && !wr_en) || (curvld && !wr_en); 	(SOP)
+nxt_vld = (!wr_en) && (strb || curvld);				(POS)
 */
 
 //TODO: Should these be parameters? And by the way, there are a lot of hardcoded widths
@@ -79,8 +78,8 @@ next_vld_tt high(next_inst_high_valid, inst_high_valid, inst_high_strobe, code_m
 next_vld_tt low(next_inst_low_valid, inst_low_valid, inst_low_strobe, code_mem_wr_en);
 */
 
-assign next_inst_high_valid = inst_high_strobe || (inst_high_valid && !code_mem_wr_en);
-assign next_inst_low_valid = inst_low_strobe || (inst_low_valid && !code_mem_wr_en);
+assign next_inst_high_valid = (!code_mem_wr_en) && (inst_high_strobe || inst_high_valid);	
+assign next_inst_low_valid = (!code_mem_wr_en) && (inst_low_strobe || inst_low_valid);
 
 assign next_code_mem_wr_addr = (code_mem_wr_en ? code_mem_wr_addr+1 : code_mem_wr_addr);
 

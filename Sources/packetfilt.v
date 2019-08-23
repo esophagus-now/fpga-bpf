@@ -153,7 +153,7 @@ packet_filter_regs #(
 
 
 bpfvm the_VM(
-	.rst(!axi_aresetn && control_start),
+	.rst(!axi_aresetn || !control_start), //Reset should be high if resetn is LOW or if start is LOW 
 	.clk(axi_aclk),
 	//Interface to an external module which will fill codemem
 	.code_mem_wr_addr(code_mem_wr_addr),

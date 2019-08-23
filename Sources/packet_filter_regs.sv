@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 // -----------------------------------------------------------------------------
 // 'packet_filter' Register Component
 // Revision: 10

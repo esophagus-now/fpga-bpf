@@ -159,7 +159,7 @@ packet_ram # (
 	.wr_en(ping_wr_en),
 	.rd_en(ping_rd_en), //read enable
 	.doa(ping_do),
-	.len_rst((ping_sel == 2'b10 && B_rej) || (ping_sel == 2'b11 && C_done)),
+	.len_rst((ping_sel == 2'b10 && cpu_rej) || (ping_sel == 2'b11 && forwarder_done)), //How did this wokr before?????
 	.len(ping_len)
 );
 
@@ -173,7 +173,7 @@ packet_ram # (
 	.wr_en(pang_wr_en),
 	.rd_en(pang_rd_en), //read enable
 	.doa(pang_do),
-	.len_rst((pang_sel == 2'b10 && B_rej) || (pang_sel == 2'b11 && C_done)),
+	.len_rst((pang_sel == 2'b10 && cpu_rej) || (pang_sel == 2'b11 && forwarder_done)),
 	.len(pang_len)
 );
 
@@ -187,7 +187,7 @@ packet_ram # (
 	.wr_en(pung_wr_en),
 	.rd_en(pung_rd_en), //read enable
 	.doa(pung_do),
-	.len_rst((pung_sel == 2'b10 && B_rej) || (pung_sel == 2'b11 && C_done)),
+	.len_rst((pung_sel == 2'b10 && cpu_rej) || (pung_sel == 2'b11 && forwarder_done)),
 	.len(pung_len)
 );
 

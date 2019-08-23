@@ -14,16 +14,19 @@ module fakedata(
     input clk,
     input rst,
     output reg [31:0] data = 0,
-    output reg strobe = 0
+    output reg strobe = 0,
+    output reg last = 0
 );
 
 reg [31:0] testdata [0:63];
 reg teststrobe [0:63];
+reg testlast [0:63];
 
 initial begin
 	//I really hope this synthesizes correctly!!!!
 	$readmemh("testdata.mem", testdata);
 	$readmemb("teststrobe.mem", teststrobe);
+	$readmemb("testlast.mem", testlast);
 end
 
 reg [7:0] addr = 0;
@@ -39,6 +42,7 @@ always @(posedge clk) begin
 		addr <= nextaddr;
 		data <= testdata[clamped_addr];
 		strobe <= teststrobe[clamped_addr];
+		last <= testlast[clamped_addr];
 	end
 		
 end

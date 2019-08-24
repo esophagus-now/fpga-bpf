@@ -19,7 +19,7 @@ parameters).
 //Assumes big-endianness
 
 
-`include "../../bpf_defs.vh"
+`include "bpf_defs.vh"
 
 module read_size_adapter # (parameter
 	BYTE_ADDR_WIDTH = 12 

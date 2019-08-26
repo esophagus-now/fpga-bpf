@@ -1,0 +1,8 @@
+I just spent about two whole days trying to figure out why the design works in 
+the sim, but not in hardware. It turns out there was nothing wrong with my 
+design, so to speak; the problem was that you need to set the base address 
+properly (i.e. manually) inside the AirHDL core. The address editor won't do it 
+for you.
+
+TL;DR Remember to set the base address of the packet filter so that it matches 
+the one in the address editor

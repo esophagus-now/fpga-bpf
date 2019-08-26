@@ -53,9 +53,9 @@ module regstrb2mem(
 	
 	//Interface from regs
 	input wire [31:0] inst_high_value,
-	input wire inst_high_strobe,
+	(* mark_debug = "true" *) input wire inst_high_strobe,
 	input wire [31:0] inst_low_value,
-	input wire inst_low_strobe,
+	(* mark_debug = "true" *) input wire inst_low_strobe,
 	
 	input wire control_start
 );
@@ -66,7 +66,8 @@ wire [`CODE_ADDR_WIDTH-1:0] next_code_mem_wr_addr;
 assign code_mem_wr_data = {inst_high_value, inst_low_value};
 
 reg inst_low_valid = 0, inst_high_valid = 0;
-wire next_inst_low_valid, next_inst_high_valid;
+(* mark_debug = "true" *) wire next_inst_low_valid;
+(* mark_debug = "true" *) wire next_inst_high_valid;
 
 assign code_mem_wr_en = !control_start &&(
 	(inst_low_valid && inst_high_strobe) ||

@@ -30,26 +30,26 @@ module packetmem#(parameter
 	//Interface to snooper
 	input wire [ADDR_WIDTH-1:0] snooper_wr_addr,
 	input wire [31:0] snooper_wr_data, //Hardcoded to 32 bits. TODO: should this get changed to 64?
-	input wire snooper_wr_en,
-	input wire snooper_done, //NOTE: this must be a 1-cycle pulse.
-	output wire ready_for_snooper,
+	(* mark_debug = "true" *) input wire snooper_wr_en,
+	(* mark_debug = "true" *) input wire snooper_done, //NOTE: this must be a 1-cycle pulse.
+	(* mark_debug = "true" *) output wire ready_for_snooper,
 	
 	//Interface to CPU
 	input wire [ADDR_WIDTH+2-1:0] cpu_byte_rd_addr,
 	input wire [1:0] transfer_sz,
 	output wire [31:0] cpu_rd_data, //Hardcoded to 32 bits
-	input wire cpu_rd_en,
-	input wire cpu_rej,
-	input wire cpu_acc, //NOTE: this must be a 1-cycle pulse.
-	output wire ready_for_cpu,
+	(* mark_debug = "true" *) input wire cpu_rd_en,
+	(* mark_debug = "true" *) input wire cpu_rej,
+	(* mark_debug = "true" *) input wire cpu_acc, //NOTE: this must be a 1-cycle pulse.
+	(* mark_debug = "true" *) output wire ready_for_cpu,
 	output wire [31:0] len_to_cpu,
 	
 	//Interface to forwarder
 	input wire [ADDR_WIDTH-1:0] forwarder_rd_addr,
 	output wire [63:0] forwarder_rd_data,
-	input wire forwarder_rd_en,
-	input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
-	output wire ready_for_forwarder,
+	(* mark_debug = "true" *) input wire forwarder_rd_en,
+	(* mark_debug = "true" *) input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
+	(* mark_debug = "true" *) output wire ready_for_forwarder,
 	output wire [31:0] len_to_forwarder
 );
 

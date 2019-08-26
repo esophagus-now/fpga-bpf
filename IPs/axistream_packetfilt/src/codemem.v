@@ -14,12 +14,12 @@ module codemem # (parameter
     DEPTH = 2**ADDR_WIDTH
 )(
     input wire clk,
-    input wire [ADDR_WIDTH-1:0] wr_addr,
-    input wire [DATA_WIDTH-1:0] wr_data,
-    input wire wr_en,
-    input wire [ADDR_WIDTH-1:0] rd_addr,
-    output wire [DATA_WIDTH-1:0] rd_data,
-    input wire rd_en
+    (* mark_debug = "true" *) input wire [ADDR_WIDTH-1:0] wr_addr,
+    (* mark_debug = "true" *) input wire [DATA_WIDTH-1:0] wr_data,
+    (* mark_debug = "true" *) input wire wr_en,
+    (* mark_debug = "true" *) input wire [ADDR_WIDTH-1:0] rd_addr,
+    (* mark_debug = "true" *) output wire [DATA_WIDTH-1:0] rd_data,
+    (* mark_debug = "true" *) input wire rd_en
 );
 
 wire clock_en;

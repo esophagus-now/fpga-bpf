@@ -12,7 +12,7 @@ includes an AXI Stream snooper and forwarder.
 `define CODE_DATA_WIDTH 64 
 `define PACKET_BYTE_ADDR_WIDTH 12
 `define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 2)
-`define PACKET_DATA_WIDTH 32
+`define PACKET_DATA_WIDTH 64
 
 module axistream_packetfilt # (
     parameter AXI_ADDR_WIDTH = 32, // width of the AXI address bus
@@ -67,7 +67,7 @@ module axistream_packetfilt # (
     
 //Interface to snooper
 wire [`PACKET_ADDR_WIDTH-1:0] snooper_wr_addr;
-wire [31:0] snooper_wr_data; //Hardcoded to 32 bits. TODO: change this to 64?
+wire [`PACKET_DATA_WIDTH:0] snooper_wr_data; //Hardcoded to 64 bits. TODO: make this a parameter?
 wire snooper_wr_en;
 wire snooper_done; //NOTE: this must be a 1-cycle pulse.
 wire ready_for_snooper;

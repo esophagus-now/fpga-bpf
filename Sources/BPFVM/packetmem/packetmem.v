@@ -17,8 +17,8 @@ is what does this.
 
 */
 
-//Assumes packetram is 32 bits wide (per port)
-`define DATA_WIDTH 32
+//Assumes packetmem has 64 bit wide di and do ports
+`define DATA_WIDTH 64
 `define PACKLEN_WIDTH 32
 
 module packetmem#(parameter
@@ -29,7 +29,7 @@ module packetmem#(parameter
 	
 	//Interface to snooper
 	input wire [ADDR_WIDTH-1:0] snooper_wr_addr,
-	input wire [31:0] snooper_wr_data, //Hardcoded to 32 bits. TODO: should this get changed to 64?
+	input wire [63:0] snooper_wr_data, //Hardcoded to 64 bits. TODO: should this width be a parameter?
 	input wire snooper_wr_en,
 	input wire snooper_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_snooper,
@@ -55,21 +55,21 @@ module packetmem#(parameter
 
 //Forward declare wires for memories
 wire [ADDR_WIDTH-1:0] ping_addr;
-wire [2*`DATA_WIDTH-1:0] ping_do;
+wire [`DATA_WIDTH-1:0] ping_do;
 wire [`DATA_WIDTH-1:0] ping_di;
 wire ping_wr_en;
 wire ping_rd_en;
 wire [`PACKLEN_WIDTH-1:0] ping_len;
 
 wire [ADDR_WIDTH-1:0] pang_addr;
-wire [2*`DATA_WIDTH-1:0] pang_do;
+wire [`DATA_WIDTH-1:0] pang_do;
 wire [`DATA_WIDTH-1:0] pang_di;
 wire pang_wr_en;
 wire pang_rd_en;
 wire [`PACKLEN_WIDTH-1:0] pang_len;
 
 wire [ADDR_WIDTH-1:0] pung_addr;
-wire [2*`DATA_WIDTH-1:0] pung_do;
+wire [`DATA_WIDTH-1:0] pung_do;
 wire [`DATA_WIDTH-1:0] pung_di;
 wire pung_wr_en;
 wire pung_rd_en;
@@ -155,10 +155,10 @@ packet_ram # (
 ) ping (
 	.clk(clk),
 	.addra(ping_addr),
-	.dia(ping_di),
+	.di(ping_di),
 	.wr_en(ping_wr_en),
 	.rd_en(ping_rd_en), //read enable
-	.doa(ping_do),
+	.do(ping_do),
 	.len_rst((ping_sel == 2'b10 && cpu_rej) || (ping_sel == 2'b11 && forwarder_done)), //How did this wokr before?????
 	.len(ping_len)
 );
@@ -169,10 +169,10 @@ packet_ram # (
 ) pang (
 	.clk(clk),
 	.addra(pang_addr),
-	.dia(pang_di),
+	.di(pang_di),
 	.wr_en(pang_wr_en),
 	.rd_en(pang_rd_en), //read enable
-	.doa(pang_do),
+	.do(pang_do),
 	.len_rst((pang_sel == 2'b10 && cpu_rej) || (pang_sel == 2'b11 && forwarder_done)),
 	.len(pang_len)
 );
@@ -183,10 +183,10 @@ packet_ram # (
 ) pung (
 	.clk(clk),
 	.addra(pung_addr),
-	.dia(pung_di),
+	.di(pung_di),
 	.wr_en(pung_wr_en),
 	.rd_en(pung_rd_en), //read enable
-	.doa(pung_do),
+	.do(pung_do),
 	.len_rst((pung_sel == 2'b10 && cpu_rej) || (pung_sel == 2'b11 && forwarder_done)),
 	.len(pung_len)
 );

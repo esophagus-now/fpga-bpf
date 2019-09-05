@@ -13,7 +13,6 @@ correctly accepted/rejected, correctly forwarded out, and to get an idea on perf
 `define CODE_DATA_WIDTH 64 
 `define PACKET_BYTE_ADDR_WIDTH 12
 `define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 2)
-`define PACKET_DATA_WIDTH 32
 
 module big_honkin_sim();
 reg clk;
@@ -26,7 +25,7 @@ reg code_mem_wr_en;
 
 //Interface from BPFVM to snooper
 wire [`PACKET_ADDR_WIDTH-1:0] snooper_wr_addr;
-wire [31:0] snooper_wr_data; //Hardcoded to 32 bits. TODO: change this to 64?
+wire [63:0] snooper_wr_data; //Hardcoded to 64 bits. TODO: make into a parameter?
 wire snooper_wr_en;
 wire snooper_done; //NOTE: this must be a 1-cycle pulse.
 wire ready_for_snooper;
@@ -40,7 +39,7 @@ wire ready_for_forwarder;
 wire [31:0] len_to_forwarder;
 
 //AXI Stream interface into snooper
-reg [31:0] snoop_tdata;
+reg [63:0] snoop_tdata;
 reg snoop_tvalid;
 reg snoop_tready;
 reg snoop_tlast;

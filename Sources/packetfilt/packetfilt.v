@@ -13,7 +13,6 @@ configuration.
 `define CODE_DATA_WIDTH 64 
 `define PACKET_BYTE_ADDR_WIDTH 12
 `define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 2)
-`define PACKET_DATA_WIDTH 32
 
 module packetfilt # (
     parameter AXI_ADDR_WIDTH = 32, // width of the AXI address bus
@@ -55,7 +54,7 @@ module packetfilt # (
     
     //Interface to snooper
     input wire [`PACKET_ADDR_WIDTH-1:0] snooper_wr_addr,
-	input wire [31:0] snooper_wr_data, //Hardcoded to 32 bits. TODO: change this to 64?
+	input wire [63:0] snooper_wr_data, //Hardcoded to 64 bits. TODO: change this to a parameter?
 	input wire snooper_wr_en,
 	input wire snooper_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_snooper,

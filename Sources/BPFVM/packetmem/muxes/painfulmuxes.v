@@ -51,7 +51,7 @@ Ping/Pang/Pung:
 --> 64 bit read data ( = {mem[addr],mem[addr+1]} )
 */
 
-`define WRITE_WIDTH 32
+`define WRITE_WIDTH 64
 `define READ_WIDTH 64
 `define ENABLE_BIT 1
 `define PACKLEN_WIDTH 32

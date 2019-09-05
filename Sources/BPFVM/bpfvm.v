@@ -11,7 +11,7 @@ Wires up the BPF CPU core (bpfcpu.v) with instruction and packet memory.
 `define CODE_DATA_WIDTH 64 
 `define PACKET_BYTE_ADDR_WIDTH 12
 `define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 2)
-`define PACKET_DATA_WIDTH 32
+`define PACKET_DATA_WIDTH 64 //Unused `define statement...
 
 module bpfvm(
 	input wire rst,
@@ -23,14 +23,14 @@ module bpfvm(
     
     //Interface to snooper
     input wire [`PACKET_ADDR_WIDTH-1:0] snooper_wr_addr,
-	input wire [31:0] snooper_wr_data, //Hardcoded to 32 bits. TODO: change this to 64?
+	input wire [63:0] snooper_wr_data, //Hardcoded to 64 bits. TODO: make a parameter?
 	input wire snooper_wr_en,
 	input wire snooper_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_snooper,
     
 	//Interface to forwarder
 	input wire [`PACKET_ADDR_WIDTH-1:0] forwarder_rd_addr,
-	output wire [63:0] forwarder_rd_data,
+	output wire [63:0] forwarder_rd_data, //Hardcoded to 64 bits. TODO: make a parameter?
 	input wire forwarder_rd_en,
 	input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_forwarder,
@@ -57,7 +57,7 @@ bpfcpu # (
 	.CODE_DATA_WIDTH(`CODE_DATA_WIDTH),
 	.PACKET_BYTE_ADDR_WIDTH(`PACKET_BYTE_ADDR_WIDTH),
 	.PACKET_ADDR_WIDTH(`PACKET_ADDR_WIDTH),
-	.PACKET_DATA_WIDTH(`PACKET_DATA_WIDTH)
+	.PACKET_DATA_WIDTH(32)
 ) theCPU (
 	.rst(rst),
 	.clk(clk),

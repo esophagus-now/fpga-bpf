@@ -22,7 +22,7 @@ module bpfcpu # (parameter
 	output wire packet_mem_rd_en,
 	output wire inst_mem_rd_en,
 	input wire [CODE_DATA_WIDTH-1:0] inst_mem_data,
-	input wire [31:0] packet_data, //Hardcoded to 32 bits
+	input wire [PACKET_DATA_WIDTH-1:0] packet_data, //Hardcoded to 32 bits. Final decision.
 	output wire [PACKET_BYTE_ADDR_WIDTH-1:0] packet_addr,
 	output wire [CODE_ADDR_WIDTH-1:0] inst_rd_addr,
 	output wire [1:0] transfer_sz,

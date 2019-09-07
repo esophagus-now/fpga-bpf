@@ -40,8 +40,7 @@ nxt_vld = (!wr_en) && (strb || curvld);				(POS)
 `define CODE_ADDR_WIDTH 10
 `define CODE_DATA_WIDTH 64 
 `define PACKET_BYTE_ADDR_WIDTH 12
-`define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 2)
-`define PACKET_DATA_WIDTH 32
+`define PACKET_ADDR_WIDTH 64
 
 module regstrb2mem(
 	input wire clk,

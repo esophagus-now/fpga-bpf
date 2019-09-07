@@ -34,7 +34,7 @@ module bpfvm(
 	input wire forwarder_rd_en,
 	input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_forwarder,
-	output wire [31:0] len_to_forwarder
+	output wire [`PACKET_ADDR_WIDTH-1:0] len_to_forwarder
 );
 
 //Wires from codemem to/from CPU
@@ -50,7 +50,7 @@ wire [1:0] transfer_sz;
 wire ready_for_cpu;
 wire cpu_acc;
 wire cpu_rej;
-wire [31:0] len_to_cpu;
+wire [`PACKET_ADDR_WIDTH-1:0] len_to_cpu;
 	
 bpfcpu # (
 	.CODE_ADDR_WIDTH(`CODE_ADDR_WIDTH),

@@ -48,10 +48,17 @@ always @(posedge clk) begin
     if (en) begin
         if (wr_en == 1'b1) begin
             data[addra] <= dia;
-            data[addrb] <= dib;
         end
         doa <= data[addra]; //Read-first mode
-        dob <= data[addrb];
+    end
+end
+
+always @(posedge clk) begin
+    if (en) begin
+        if (wr_en == 1'b1) begin
+            data[addrb] <= dib;
+        end
+        dob <= data[addrb]; //Read-first mode
     end
 end
 endmodule
@@ -71,7 +78,7 @@ module packet_ram # (parameter
     //Signals for managing length
     //TODO: This logic is spread all over the place. Fix that.
     input wire len_rst,
-    output reg [31:0] len = 0
+    output reg [ADDR_WIDTH-1:0] len = 0
 );
 
 wire [ADDR_WIDTH-1:0] addrb;
@@ -84,7 +91,7 @@ end
 
 packetram_wrapped # ( 
     .ADDR_WIDTH(ADDR_WIDTH),
-    .DATA_WIDTH(DATA_WIDTH)
+    .DATA_WIDTH(DATA_WIDTH/2)
 ) meminst (
 	.clk(clk),
 	.en(wr_en | rd_en), //clock enable

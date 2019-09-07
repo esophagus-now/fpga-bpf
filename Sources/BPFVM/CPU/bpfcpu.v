@@ -18,7 +18,7 @@ module bpfcpu # (parameter
 	input wire rst,
 	input wire clk,
 	input wire mem_ready, //Signal from packetmem.v
-	input wire [31:0] packet_len, //Hardcoded to 32 bits
+	input wire [PACKET_ADDR_WIDTH-1:0] packet_len,
 	output wire packet_mem_rd_en,
 	output wire inst_mem_rd_en,
 	input wire [CODE_DATA_WIDTH-1:0] inst_mem_data,

@@ -34,7 +34,7 @@ module bpfvm_datapath # (parameter
     input wire [3:0] ALU_sel,
     input wire [CODE_DATA_WIDTH-1:0] inst_mem_data,
     input wire [31:0] packet_data, //This will always get padded to 32 bits
-    input wire [31:0] packet_len, //Hardcoded
+    input wire [31:0] packet_len, //Hardcoded. Should left-pad with zeroes automatically
     input wire regfile_wr_en,
     input wire regfile_sel,
     output wire [15:0] opcode,

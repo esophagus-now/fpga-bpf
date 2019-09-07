@@ -65,7 +65,7 @@ module packetfilt # (
 	input wire forwarder_rd_en,
 	input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_forwarder,
-	output wire [31:0] len_to_forwarder
+	output wire [`PACKET_ADDR_WIDTH-1:0] len_to_forwarder
 );
 
     

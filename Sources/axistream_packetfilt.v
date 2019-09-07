@@ -78,7 +78,7 @@ wire [63:0] forwarder_rd_data;
 wire forwarder_rd_en;
 wire forwarder_done; //NOTE: this must be a 1-cycle pulse.
 wire ready_for_forwarder;
-wire [31:0] len_to_forwarder;
+wire [`PACKET_ADDR_WIDTH-1:0] len_to_forwarder;
 
 
 

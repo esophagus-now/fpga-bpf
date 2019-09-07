@@ -36,11 +36,11 @@ assign maxaddr = len_to_forwarder;
 assign TDATA = forwarder_rd_data; 
 
 wire TLAST_next;
-assign TLAST_next = (forwarder_rd_addr == maxaddr && forwarder_rd_en);
+assign TLAST_next = (forwarder_rd_addr > maxaddr && forwarder_rd_en);
 //The next flit in TDATA is the last, in this case 
 
 wire [ADDR_WIDTH-1:0] next_addr;
-assign next_addr = (ready_for_forwarder && forwarder_rd_en) ? ((forwarder_rd_addr == maxaddr) ? 0 : forwarder_rd_addr+2) : forwarder_rd_addr;
+assign next_addr = (ready_for_forwarder && forwarder_rd_en) ? ((forwarder_rd_addr > maxaddr) ? 0 : forwarder_rd_addr+2) : forwarder_rd_addr;
 
 //We need to enable a read under the following circumstances:
 // TVALID	|	TREADY	|	ready_for_forwarder |	rd_en

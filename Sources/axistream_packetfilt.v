@@ -67,7 +67,7 @@ module axistream_packetfilt # (
     
 //Interface to snooper
 wire [`PACKET_ADDR_WIDTH-1:0] snooper_wr_addr;
-wire [`PACKET_DATA_WIDTH:0] snooper_wr_data; //Hardcoded to 64 bits. TODO: make this a parameter?
+wire [`PACKET_DATA_WIDTH-1:0] snooper_wr_data; //Hardcoded to 64 bits. TODO: make this a parameter?
 wire snooper_wr_en;
 wire snooper_done; //NOTE: this must be a 1-cycle pulse.
 wire ready_for_snooper;

@@ -34,7 +34,7 @@ reg [DATA_WIDTH-1:0] data[0:DEPTH-1];
 
 //For testing purposes, this preloads the memory with a program
 `ifdef PRELOAD_TEST_PROGRAM
-`include "../../bpf_defs.vh"
+`include "bpf_defs.vh"
 
 initial begin
 	data[0]  = ({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]                         

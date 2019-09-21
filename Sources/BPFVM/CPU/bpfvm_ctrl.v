@@ -18,7 +18,7 @@ First, a bunch of defines to make the code easier to deal with.
 These were taken from the BPF reference implementation, and
 modified to match Verilog's syntax
 */
-`include "../../bpf_defs.vh" 
+`include "bpf_defs.vh" 
 
 //I use "logic" where I intend a combinational signal, but I need to
 //use reg to make Verilog's compiler happy

@@ -1,3 +1,5 @@
+//Please remember to set this as "global include" in Vivado's sources panel
+
 `ifndef BPF_DEFS_VH
 `define BPF_DEFS_VH 1
 

@@ -17,19 +17,18 @@ is what does this.
 
 */
 
-//Assumes packetram is 32 bits wide (per port)
-`define DATA_WIDTH 32
-`define PACKLEN_WIDTH 32
+//Assumes packetmem has 64 bit wide di and do ports
+`define DATA_WIDTH 64
 
 module packetmem#(parameter
-    ADDR_WIDTH = 10 
+    ADDR_WIDTH = 10
 )(
 	input wire clk,
 	input wire p3ctrl_rst,
 	
 	//Interface to snooper
 	input wire [ADDR_WIDTH-1:0] snooper_wr_addr,
-	input wire [31:0] snooper_wr_data, //Hardcoded to 32 bits. TODO: should this get changed to 64?
+	input wire [63:0] snooper_wr_data, //Hardcoded to 64 bits. TODO: should this width be a parameter?
 	input wire snooper_wr_en,
 	input wire snooper_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_snooper,
@@ -42,7 +41,7 @@ module packetmem#(parameter
 	input wire cpu_rej,
 	input wire cpu_acc, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_cpu,
-	output wire [31:0] len_to_cpu,
+	output wire [ADDR_WIDTH-1:0] len_to_cpu,
 	
 	//Interface to forwarder
 	input wire [ADDR_WIDTH-1:0] forwarder_rd_addr,
@@ -50,30 +49,30 @@ module packetmem#(parameter
 	input wire forwarder_rd_en,
 	input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_forwarder,
-	output wire [31:0] len_to_forwarder
+	output wire [ADDR_WIDTH-1:0] len_to_forwarder
 );
 
 //Forward declare wires for memories
 wire [ADDR_WIDTH-1:0] ping_addr;
-wire [2*`DATA_WIDTH-1:0] ping_do;
+wire [`DATA_WIDTH-1:0] ping_do;
 wire [`DATA_WIDTH-1:0] ping_di;
 wire ping_wr_en;
 wire ping_rd_en;
-wire [`PACKLEN_WIDTH-1:0] ping_len;
+wire [ADDR_WIDTH-1:0] ping_len;
 
 wire [ADDR_WIDTH-1:0] pang_addr;
-wire [2*`DATA_WIDTH-1:0] pang_do;
+wire [`DATA_WIDTH-1:0] pang_do;
 wire [`DATA_WIDTH-1:0] pang_di;
 wire pang_wr_en;
 wire pang_rd_en;
-wire [`PACKLEN_WIDTH-1:0] pang_len;
+wire [ADDR_WIDTH-1:0] pang_len;
 
 wire [ADDR_WIDTH-1:0] pung_addr;
-wire [2*`DATA_WIDTH-1:0] pung_do;
+wire [`DATA_WIDTH-1:0] pung_do;
 wire [`DATA_WIDTH-1:0] pung_di;
 wire pung_wr_en;
 wire pung_rd_en;
-wire [`PACKLEN_WIDTH-1:0] pung_len;
+wire [ADDR_WIDTH-1:0] pung_len;
 
 //Declare wires for controller stuff
 wire [1:0] sn_sel, cpu_sel, fwd_sel;
@@ -100,7 +99,7 @@ assign ready_for_forwarder = fwd_sel != 0;
 //TODO: fix these variable names, they are extremely confusing!!
 
 wire [ADDR_WIDTH-1:0] cpu_rd_addr;
-wire [2*`DATA_WIDTH-1:0] membuf_rd_data;
+wire [`DATA_WIDTH-1:0] membuf_rd_data;
 
 read_size_adapter # (
 	.BYTE_ADDR_WIDTH(ADDR_WIDTH+2) 
@@ -124,7 +123,7 @@ painfulmuxes # (
 	.from_sn({snooper_wr_addr, snooper_wr_data, snooper_wr_en}),
 	//Format is {addr, rd_en}
 	.from_cpu({cpu_rd_addr, cpu_rd_en}),
-	.from_fwd({forwarder_rd_addr[ADDR_WIDTH-2:0], 1'b0, forwarder_rd_en}), //This essentially multiplies the forwarder's read address by 2
+	.from_fwd({forwarder_rd_addr, forwarder_rd_en}),
 	//Format is {rd_data, packet_len}
 	.from_ping({ping_do, ping_len}),
 	.from_pang({pang_do, pang_len}),
@@ -155,10 +154,10 @@ packet_ram # (
 ) ping (
 	.clk(clk),
 	.addra(ping_addr),
-	.dia(ping_di),
+	.di(ping_di),
 	.wr_en(ping_wr_en),
 	.rd_en(ping_rd_en), //read enable
-	.doa(ping_do),
+	.do(ping_do),
 	.len_rst((ping_sel == 2'b10 && cpu_rej) || (ping_sel == 2'b11 && forwarder_done)), //How did this wokr before?????
 	.len(ping_len)
 );
@@ -169,10 +168,10 @@ packet_ram # (
 ) pang (
 	.clk(clk),
 	.addra(pang_addr),
-	.dia(pang_di),
+	.di(pang_di),
 	.wr_en(pang_wr_en),
 	.rd_en(pang_rd_en), //read enable
-	.doa(pang_do),
+	.do(pang_do),
 	.len_rst((pang_sel == 2'b10 && cpu_rej) || (pang_sel == 2'b11 && forwarder_done)),
 	.len(pang_len)
 );
@@ -183,10 +182,10 @@ packet_ram # (
 ) pung (
 	.clk(clk),
 	.addra(pung_addr),
-	.dia(pung_di),
+	.di(pung_di),
 	.wr_en(pung_wr_en),
 	.rd_en(pung_rd_en), //read enable
-	.doa(pung_do),
+	.do(pung_do),
 	.len_rst((pung_sel == 2'b10 && cpu_rej) || (pung_sel == 2'b11 && forwarder_done)),
 	.len(pung_len)
 );

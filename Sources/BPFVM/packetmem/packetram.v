@@ -35,6 +35,7 @@ module packetram_wrapped # (parameter
     output reg [DATA_WIDTH-1:0] dob,
     
     input [DATA_WIDTH-1:0] dia,
+    input [DATA_WIDTH-1:0] dib,
     input wr_en
 
 );
@@ -49,7 +50,15 @@ always @(posedge clk) begin
             data[addra] <= dia;
         end
         doa <= data[addra]; //Read-first mode
-        dob <= data[addrb];
+    end
+end
+
+always @(posedge clk) begin
+    if (en) begin
+        if (wr_en == 1'b1) begin
+            data[addrb] <= dib;
+        end
+        dob <= data[addrb]; //Read-first mode
     end
 end
 endmodule
@@ -57,19 +66,19 @@ endmodule
 //Chenge to use rd_en instead of clock enable
 module packet_ram # (parameter 
     ADDR_WIDTH = 10,
-    DATA_WIDTH = 32
+    DATA_WIDTH = 64
 )(
     input clk,
     input [ADDR_WIDTH-1:0] addra,
-    input [DATA_WIDTH-1:0] dia,
+    input [DATA_WIDTH-1:0] di,
     input wr_en,
     input rd_en, //read enable
-    output [2*DATA_WIDTH-1:0] doa,
+    output [DATA_WIDTH-1:0] do,
     
     //Signals for managing length
     //TODO: This logic is spread all over the place. Fix that.
     input wire len_rst,
-    output reg [31:0] len = 0
+    output reg [ADDR_WIDTH-1:0] len = 0
 );
 
 wire [ADDR_WIDTH-1:0] addrb;
@@ -82,17 +91,18 @@ end
 
 packetram_wrapped # ( 
     .ADDR_WIDTH(ADDR_WIDTH),
-    .DATA_WIDTH(DATA_WIDTH)
+    .DATA_WIDTH(DATA_WIDTH/2)
 ) meminst (
 	.clk(clk),
 	.en(wr_en | rd_en), //clock enable
 
 	.addra(addra),
 	.addrb(addrb),
-	.doa(doa[2*DATA_WIDTH-1:DATA_WIDTH]),
-	.dob(doa[DATA_WIDTH-1:0]),
+	.doa(do[DATA_WIDTH-1:DATA_WIDTH/2]),
+	.dob(do[DATA_WIDTH/2-1:0]),
     
-	.dia(dia),
+	.dia(di[DATA_WIDTH-1:DATA_WIDTH/2]),
+	.dib(di[DATA_WIDTH/2-1:0]),
 	.wr_en(wr_en)
 );
 

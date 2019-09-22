@@ -6,14 +6,14 @@ Wires up the BPF CPU core (bpfcpu.v) with instruction and packet memory.
 
 */
 
-
+`define PACKET_DATA_WIDTH (2**(3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH))
+ 
 module bpfvm # (
     parameter CODE_ADDR_WIDTH = 10, // codemem depth = 2^CODE_ADDR_WIDTH
     parameter PACKET_BYTE_ADDR_WIDTH = 12, // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
-    parameter SNOOP_FWD_ADDR_WIDTH = 9,
+    parameter SNOOP_FWD_ADDR_WIDTH = 9
     //this makes the data width of the snooper and fwd equal to:
     // 2^{3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH}
-    localparam PACKET_DATA_WIDTH = 2**(3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH)
 )(
 	input wire rst,
 	input wire clk,
@@ -24,14 +24,14 @@ module bpfvm # (
     
     //Interface to snooper
     input wire [SNOOP_FWD_ADDR_WIDTH-1:0] snooper_wr_addr,
-	input wire [63:0] snooper_wr_data, //Hardcoded to 64 bits. TODO: make a parameter?
+	input wire [`PACKET_DATA_WIDTH-1:0] snooper_wr_data,
 	input wire snooper_wr_en,
 	input wire snooper_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_snooper,
     
 	//Interface to forwarder
 	input wire [SNOOP_FWD_ADDR_WIDTH-1:0] forwarder_rd_addr,
-	output wire [63:0] forwarder_rd_data, //Hardcoded to 64 bits. TODO: make a parameter?
+	output wire [`PACKET_DATA_WIDTH-1:0] forwarder_rd_data,
 	input wire forwarder_rd_en,
 	input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_forwarder,
@@ -119,3 +119,5 @@ codemem # (
 );
 
 endmodule
+
+`undef PACKET_DATA_WIDTH

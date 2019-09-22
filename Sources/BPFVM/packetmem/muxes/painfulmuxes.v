@@ -54,7 +54,8 @@ Ping/Pang/Pung:
 `define ENABLE_BIT 1
 module painfulmuxes # (
 	parameter ADDR_WIDTH = 10,
-	parameter DATA_WIDTH = 64
+	parameter DATA_WIDTH = 64,
+	parameter PLEN_WIDTH = ADDR_WIDTH //TODO: this REALLY needs to be fixed...
 )(
 	//Inputs
 	//Format is {addr, wr_data, wr_en}
@@ -63,15 +64,15 @@ module painfulmuxes # (
 	input wire [ADDR_WIDTH + `ENABLE_BIT -1:0] from_cpu,
 	input wire [ADDR_WIDTH + `ENABLE_BIT -1:0] from_fwd,
 	//Format is {rd_data, packet_len}
-	input wire [DATA_WIDTH + ADDR_WIDTH -1:0] from_ping,
-	input wire [DATA_WIDTH + ADDR_WIDTH -1:0] from_pang,
-	input wire [DATA_WIDTH + ADDR_WIDTH -1:0] from_pung,
+	input wire [DATA_WIDTH + PLEN_WIDTH -1:0] from_ping,
+	input wire [DATA_WIDTH + PLEN_WIDTH -1:0] from_pang,
+	input wire [DATA_WIDTH + PLEN_WIDTH -1:0] from_pung,
 	
 	//Outputs
 	//Nothing to output to snooper, besides maybe a "ready" line
 	//Format is {rd_data, packet_len}
-	output wire [DATA_WIDTH + ADDR_WIDTH -1:0] to_cpu,
-	output wire [DATA_WIDTH + ADDR_WIDTH -1:0] to_fwd,
+	output wire [DATA_WIDTH + PLEN_WIDTH -1:0] to_cpu,
+	output wire [DATA_WIDTH + PLEN_WIDTH -1:0] to_fwd,
 	//Format here is {addr, wr_data, wr_en, rd_en}
 	output wire [ADDR_WIDTH + DATA_WIDTH + 2*`ENABLE_BIT -1:0] to_ping,
 	output wire [ADDR_WIDTH + DATA_WIDTH + 2*`ENABLE_BIT -1:0] to_pang,
@@ -98,7 +99,7 @@ muxselinvert muxthing(
 	.pung_sel(pung_sel)
 );
 
-mux3 # (DATA_WIDTH + ADDR_WIDTH) cpu_mux (
+mux3 # (DATA_WIDTH + PLEN_WIDTH) cpu_mux (
 	.A(from_ping),
 	.B(from_pang),
 	.C(from_pung),
@@ -106,7 +107,7 @@ mux3 # (DATA_WIDTH + ADDR_WIDTH) cpu_mux (
 	.D(to_cpu)
 );
 
-mux3 # (DATA_WIDTH + ADDR_WIDTH) fwd_mux (
+mux3 # (DATA_WIDTH + PLEN_WIDTH) fwd_mux (
 	.A(from_ping),
 	.B(from_pang),
 	.C(from_pung),

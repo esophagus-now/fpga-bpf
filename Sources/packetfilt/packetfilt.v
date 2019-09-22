@@ -8,15 +8,17 @@ include some way to add a parameterizable number of snoopers as well as manage t
 configuration.
 */
 
+//I didn't have great luck with localparams
+`define PACKET_DATA_WIDTH (2**(3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH))
+
 module packetfilt # (
     parameter AXI_ADDR_WIDTH = 12, // width of the AXI address bus
     parameter [31:0] BASEADDR = 32'h00000000, // the register file's system base address 
     parameter CODE_ADDR_WIDTH = 10, // codemem depth = 2^CODE_ADDR_WIDTH
     parameter PACKET_BYTE_ADDR_WIDTH = 12, // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
-    parameter SNOOP_FWD_ADDR_WIDTH = 9,
+    parameter SNOOP_FWD_ADDR_WIDTH = 9
     //this makes the data width of the snooper and fwd equal to:
     // 2^{3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH}
-    localparam PACKET_DATA_WIDTH = 2**(3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH)
 )(
 
     // Clock and Reset
@@ -54,14 +56,14 @@ module packetfilt # (
     
     //Interface to snooper
     input wire [SNOOP_FWD_ADDR_WIDTH-1:0] snooper_wr_addr,
-	input wire [63:0] snooper_wr_data, //Hardcoded to 64 bits. TODO: change this to a parameter?
+	input wire [`PACKET_DATA_WIDTH-1:0] snooper_wr_data, //Hardcoded to 64 bits. TODO: change this to a parameter?
 	input wire snooper_wr_en,
 	input wire snooper_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_snooper,
     
 	//Interface to forwarder
 	input wire [SNOOP_FWD_ADDR_WIDTH-1:0] forwarder_rd_addr,
-	output wire [63:0] forwarder_rd_data,
+	output wire [`PACKET_DATA_WIDTH-1:0] forwarder_rd_data,
 	input wire forwarder_rd_en,
 	input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_forwarder,
@@ -151,7 +153,11 @@ packet_filter_regs #(
 );
 
 
-bpfvm the_VM(
+bpfvm # (
+    .CODE_ADDR_WIDTH(CODE_ADDR_WIDTH), // codemem depth = 2^CODE_ADDR_WIDTH
+    .PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH), // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
+    .SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)
+) the_VM(
 	.rst(!axi_aresetn || !control_start), //Reset should be high if resetn is LOW or if start is LOW 
 	.clk(axi_aclk),
 	//Interface to an external module which will fill codemem
@@ -176,3 +182,6 @@ bpfvm the_VM(
 );
 
 endmodule
+
+
+`undef PACKET_DATA_WIDTH

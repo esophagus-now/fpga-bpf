@@ -17,62 +17,69 @@ is what does this.
 
 */
 
-//Assumes packetmem has 64 bit wide di and do ports
-`define DATA_WIDTH 64
-
-module packetmem#(parameter
-    ADDR_WIDTH = 10
+module packetmem#(
+    parameter PACKET_BYTE_ADDR_WIDTH = 12, // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
+    parameter SNOOP_FWD_ADDR_WIDTH = 9,
+    //this makes the data width of the snooper and fwd equal to:
+    // 2^{3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH}
+    localparam SNOOP_FWD_DATA_WIDTH = 2**(3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH),
+    //Because of the support for unaligned reads, I actually use two ports of half the size
+    localparam PORT_DATA_WIDTH = 2**(2 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH),
+    localparam PORT_ADDR_WIDTH = SNOOP_FWD_ADDR_WIDTH+1
 )(
 	input wire clk,
 	input wire p3ctrl_rst,
 	
 	//Interface to snooper
-	input wire [ADDR_WIDTH-1:0] snooper_wr_addr,
-	input wire [63:0] snooper_wr_data, //Hardcoded to 64 bits. TODO: should this width be a parameter?
+	input wire [SNOOP_FWD_ADDR_WIDTH-1:0] snooper_wr_addr,
+	input wire [SNOOP_FWD_DATA_WIDTH-1:0] snooper_wr_data,
 	input wire snooper_wr_en,
 	input wire snooper_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_snooper,
 	
 	//Interface to CPU
-	input wire [ADDR_WIDTH+2-1:0] cpu_byte_rd_addr,
+	input wire [PACKET_BYTE_ADDR_WIDTH-1:0] cpu_byte_rd_addr,
 	input wire [1:0] transfer_sz,
 	output wire [31:0] cpu_rd_data, //Hardcoded to 32 bits
 	input wire cpu_rd_en,
 	input wire cpu_rej,
 	input wire cpu_acc, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_cpu,
-	output wire [ADDR_WIDTH-1:0] len_to_cpu,
+	output wire [SNOOP_FWD_ADDR_WIDTH-1:0] len_to_cpu,
 	
 	//Interface to forwarder
-	input wire [ADDR_WIDTH-1:0] forwarder_rd_addr,
-	output wire [63:0] forwarder_rd_data,
+	input wire [SNOOP_FWD_ADDR_WIDTH-1:0] forwarder_rd_addr,
+	output wire [SNOOP_FWD_DATA_WIDTH-1:0] forwarder_rd_data,
 	input wire forwarder_rd_en,
 	input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_forwarder,
-	output wire [ADDR_WIDTH-1:0] len_to_forwarder
+	output wire [SNOOP_FWD_ADDR_WIDTH-1:0] len_to_forwarder
 );
 
+//TODO: I made a mistake, so the original names I gave to these constants no longer makes sense
+//so I should fix them
+
 //Forward declare wires for memories
-wire [ADDR_WIDTH-1:0] ping_addr;
-wire [`DATA_WIDTH-1:0] ping_do;
-wire [`DATA_WIDTH-1:0] ping_di;
+wire [PORT_ADDR_WIDTH-1:0] ping_addr;
+wire [SNOOP_FWD_DATA_WIDTH-1:0] ping_do;
+wire [SNOOP_FWD_DATA_WIDTH-1:0] ping_di;
 wire ping_wr_en;
 wire ping_rd_en;
-wire [ADDR_WIDTH-1:0] ping_len;
+wire [SNOOP_FWD_ADDR_WIDTH-1:0] ping_len;
 
-wire [ADDR_WIDTH-1:0] pang_addr;
-wire [`DATA_WIDTH-1:0] pang_do;
-wire [`DATA_WIDTH-1:0] pang_di;
+wire [PORT_ADDR_WIDTH-1:0] pang_addr;
+wire [SNOOP_FWD_DATA_WIDTH-1:0] pang_do;
+wire [SNOOP_FWD_DATA_WIDTH-1:0] pang_di;
 wire pang_wr_en;
 wire pang_rd_en;
-wire [ADDR_WIDTH-1:0] pang_len;
+wire [SNOOP_FWD_ADDR_WIDTH-1:0] pang_len;
 
-wire [ADDR_WIDTH-1:0] pung_addr;
-wire [`DATA_WIDTH-1:0] pung_do;
-wire [`DATA_WIDTH-1:0] pung_di;
+wire [PORT_ADDR_WIDTH-1:0] pung_addr;
+wire [SNOOP_FWD_DATA_WIDTH-1:0] pung_do;
+wire [SNOOP_FWD_DATA_WIDTH-1:0] pung_di;
 wire pung_wr_en;
 wire pung_rd_en;
-wire [ADDR_WIDTH-1:0] pung_len;
+wire [SNOOP_FWD_ADDR_WIDTH-1:0] pung_len;
 
 //Declare wires for controller stuff
 wire [1:0] sn_sel, cpu_sel, fwd_sel;
@@ -96,19 +103,19 @@ assign ready_for_cpu = cpu_sel != 0;
 assign ready_for_forwarder = fwd_sel != 0;
 
 //Special thing to do for CPU: apply the read size adapter
-//TODO: fix these variable names, they are extremely confusing!!
 
-wire [ADDR_WIDTH-1:0] cpu_rd_addr;
-wire [`DATA_WIDTH-1:0] membuf_rd_data;
+wire [PORT_ADDR_WIDTH-1:0] adapted_cpu_rd_addr;
+wire [2*PORT_DATA_WIDTH-1:0] adapted_mem_rd_data;
 
 read_size_adapter # (
-	.BYTE_ADDR_WIDTH(ADDR_WIDTH+2) 
+	.PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH),
+	.SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)
 ) cpu_adapter (
 	.clk(clk),
 	.byte_rd_addr(cpu_byte_rd_addr),
 	.transfer_sz(transfer_sz),
-	.word_rd_addra(cpu_rd_addr),
-	.bigword(membuf_rd_data),
+	.word_rd_addra(adapted_cpu_rd_addr),
+	.bigword(adapted_mem_rd_data),
 	.resized_mem_data(cpu_rd_data) //zero-padded on the left (when necessary)
 );
 
@@ -116,14 +123,14 @@ read_size_adapter # (
 wire [1:0] ping_sel, pang_sel, pung_sel;
 //Instantiate the crazy MUXes
 painfulmuxes # (
-	.ADDR_WIDTH(ADDR_WIDTH)
+	.ADDR_WIDTH(PORT_ADDR_WIDTH)
 ) crazy_muxes (
 //Inputs
 	//Format is {addr, wr_data, wr_en}
-	.from_sn({snooper_wr_addr, snooper_wr_data, snooper_wr_en}),
+	.from_sn({snooper_wr_addr, 1'b0, snooper_wr_data, snooper_wr_en}), //The 1'b0 appends a zero to the end of the read address
 	//Format is {addr, rd_en}
-	.from_cpu({cpu_rd_addr, cpu_rd_en}),
-	.from_fwd({forwarder_rd_addr, forwarder_rd_en}),
+	.from_cpu({adapted_cpu_rd_addr, cpu_rd_en}),
+	.from_fwd({forwarder_rd_addr, 1'b0, forwarder_rd_en}), //The 1'b0 appends a zero to the end of the read address
 	//Format is {rd_data, packet_len}
 	.from_ping({ping_do, ping_len}),
 	.from_pang({pang_do, pang_len}),
@@ -131,7 +138,7 @@ painfulmuxes # (
 	
 	//Outputs
 	//Format is {rd_data, packet_len}
-	.to_cpu({membuf_rd_data, len_to_cpu}),
+	.to_cpu({adapted_mem_rd_data, len_to_cpu}),
 	.to_fwd({forwarder_rd_data, len_to_forwarder}),
 	//Format here is {addr, wr_data, wr_en, rd_en}
 	.to_ping({ping_addr, ping_di, ping_wr_en, ping_rd_en}),
@@ -149,8 +156,8 @@ painfulmuxes # (
 
 //Instantiate memories
 packet_ram # (
-    .ADDR_WIDTH(ADDR_WIDTH),
-    .DATA_WIDTH(`DATA_WIDTH)
+    .PORT_ADDR_WIDTH(PORT_ADDR_WIDTH),
+    .PORT_DATA_WIDTH(PORT_DATA_WIDTH)
 ) ping (
 	.clk(clk),
 	.addra(ping_addr),
@@ -158,13 +165,13 @@ packet_ram # (
 	.wr_en(ping_wr_en),
 	.rd_en(ping_rd_en), //read enable
 	.do(ping_do),
-	.len_rst((ping_sel == 2'b10 && cpu_rej) || (ping_sel == 2'b11 && forwarder_done)), //How did this wokr before?????
+	.len_rst((ping_sel == 2'b10 && cpu_rej) || (ping_sel == 2'b11 && forwarder_done)), 
 	.len(ping_len)
 );
 
 packet_ram # (
-    .ADDR_WIDTH(ADDR_WIDTH),
-    .DATA_WIDTH(`DATA_WIDTH)
+    .PORT_ADDR_WIDTH(PORT_ADDR_WIDTH),
+    .PORT_DATA_WIDTH(PORT_DATA_WIDTH)
 ) pang (
 	.clk(clk),
 	.addra(pang_addr),
@@ -177,8 +184,8 @@ packet_ram # (
 );
 
 packet_ram # (
-    .ADDR_WIDTH(ADDR_WIDTH),
-    .DATA_WIDTH(`DATA_WIDTH)
+    .PORT_ADDR_WIDTH(PORT_ADDR_WIDTH),
+    .PORT_DATA_WIDTH(PORT_DATA_WIDTH)
 ) pung (
 	.clk(clk),
 	.addra(pung_addr),

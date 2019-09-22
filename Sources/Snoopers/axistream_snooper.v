@@ -8,7 +8,7 @@ A simple snooper for AXI Stream wires.
 
 module axistream_snooper # (parameter
 	DATA_WIDTH = 64,
-	ADDR_WIDTH = 10
+	ADDR_WIDTH = 9
 )(
 	input wire clk,
 	
@@ -47,7 +47,7 @@ assign wr_en = (mem_ready && TVALID && TREADY && !need_to_wait);
 //make done = 1 on our last write
 assign done = TLAST && wr_en;
 
-assign next_addr = wr_en ? (done ? 0 : addr + 2) : addr;
+assign next_addr = wr_en ? (done ? 0 : addr + 1) : addr;
 
 always @(posedge clk) begin
 	addr <= next_addr;

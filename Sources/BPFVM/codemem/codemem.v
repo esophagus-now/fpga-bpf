@@ -8,10 +8,10 @@ of clock_en and wr_en).
 */
 
 
-module codemem # (parameter
-    ADDR_WIDTH = 10,
-    DATA_WIDTH = 64, //TODO: I might try shrinking the opcodes at some point
-    DEPTH = 2**ADDR_WIDTH
+module codemem # (
+	parameter ADDR_WIDTH = 10,
+    parameter DATA_WIDTH = 64, //TODO: I might try shrinking the opcodes at some point
+    localparam DEPTH = 2**ADDR_WIDTH
 )(
     input wire clk,
     input wire [ADDR_WIDTH-1:0] wr_addr,

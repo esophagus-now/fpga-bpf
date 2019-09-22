@@ -51,32 +51,31 @@ Ping/Pang/Pung:
 --> 64 bit read data ( = {mem[addr],mem[addr+1]} )
 */
 
-`define WRITE_WIDTH 64
-`define READ_WIDTH 64
 `define ENABLE_BIT 1
-module painfulmuxes # (parameter
-	ADDR_WIDTH = 10
+module painfulmuxes # (
+	parameter ADDR_WIDTH = 10,
+	parameter DATA_WIDTH = 64
 )(
 	//Inputs
 	//Format is {addr, wr_data, wr_en}
-	input wire [ADDR_WIDTH + `WRITE_WIDTH + `ENABLE_BIT -1:0] from_sn,
+	input wire [ADDR_WIDTH + DATA_WIDTH + `ENABLE_BIT -1:0] from_sn,
 	//Format is {addr, rd_en}
 	input wire [ADDR_WIDTH + `ENABLE_BIT -1:0] from_cpu,
 	input wire [ADDR_WIDTH + `ENABLE_BIT -1:0] from_fwd,
 	//Format is {rd_data, packet_len}
-	input wire [`READ_WIDTH + ADDR_WIDTH -1:0] from_ping,
-	input wire [`READ_WIDTH + ADDR_WIDTH -1:0] from_pang,
-	input wire [`READ_WIDTH + ADDR_WIDTH -1:0] from_pung,
+	input wire [DATA_WIDTH + ADDR_WIDTH -1:0] from_ping,
+	input wire [DATA_WIDTH + ADDR_WIDTH -1:0] from_pang,
+	input wire [DATA_WIDTH + ADDR_WIDTH -1:0] from_pung,
 	
 	//Outputs
 	//Nothing to output to snooper, besides maybe a "ready" line
 	//Format is {rd_data, packet_len}
-	output wire [`READ_WIDTH + ADDR_WIDTH -1:0] to_cpu,
-	output wire [`READ_WIDTH + ADDR_WIDTH -1:0] to_fwd,
+	output wire [DATA_WIDTH + ADDR_WIDTH -1:0] to_cpu,
+	output wire [DATA_WIDTH + ADDR_WIDTH -1:0] to_fwd,
 	//Format here is {addr, wr_data, wr_en, rd_en}
-	output wire [ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT -1:0] to_ping,
-	output wire [ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT -1:0] to_pang,
-	output wire [ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT -1:0] to_pung,
+	output wire [ADDR_WIDTH + DATA_WIDTH + 2*`ENABLE_BIT -1:0] to_ping,
+	output wire [ADDR_WIDTH + DATA_WIDTH + 2*`ENABLE_BIT -1:0] to_pang,
+	output wire [ADDR_WIDTH + DATA_WIDTH + 2*`ENABLE_BIT -1:0] to_pung,
 	
 	//Selects
 	input wire [1:0] sn_sel,
@@ -99,7 +98,7 @@ muxselinvert muxthing(
 	.pung_sel(pung_sel)
 );
 
-mux3 # (`READ_WIDTH + ADDR_WIDTH) cpu_mux (
+mux3 # (DATA_WIDTH + ADDR_WIDTH) cpu_mux (
 	.A(from_ping),
 	.B(from_pang),
 	.C(from_pung),
@@ -107,7 +106,7 @@ mux3 # (`READ_WIDTH + ADDR_WIDTH) cpu_mux (
 	.D(to_cpu)
 );
 
-mux3 # (`READ_WIDTH + ADDR_WIDTH) fwd_mux (
+mux3 # (DATA_WIDTH + ADDR_WIDTH) fwd_mux (
 	.A(from_ping),
 	.B(from_pang),
 	.C(from_pung),
@@ -120,16 +119,19 @@ mux3 # (`READ_WIDTH + ADDR_WIDTH) fwd_mux (
 //inputs/outputs with zeros
 
 //Format here is {addr, wr_data, wr_en, rd_en}
-wire [ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT -1:0] from_sn_padded;
-wire [ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT -1:0] from_cpu_padded;
-wire [ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT -1:0] from_fwd_padded;
+wire [ADDR_WIDTH + DATA_WIDTH + 2*`ENABLE_BIT -1:0] from_sn_padded;
+wire [ADDR_WIDTH + DATA_WIDTH + 2*`ENABLE_BIT -1:0] from_cpu_padded;
+wire [ADDR_WIDTH + DATA_WIDTH + 2*`ENABLE_BIT -1:0] from_fwd_padded;
+
+localparam [DATA_WIDTH-1:0] no_wr_data = 0;
+localparam [`ENABLE_BIT-1:0] no_enable_bit = 0;
 
 assign from_sn_padded = {from_sn, `ENABLE_BIT'b0};
-assign from_cpu_padded = {from_cpu[ADDR_WIDTH + `ENABLE_BIT -1:1], `WRITE_WIDTH'b0, `ENABLE_BIT'b0, from_cpu[0]};
-assign from_fwd_padded = {from_fwd[ADDR_WIDTH + `ENABLE_BIT -1:1], `WRITE_WIDTH'b0, `ENABLE_BIT'b0, from_fwd[0]};
+assign from_cpu_padded = {from_cpu[ADDR_WIDTH + `ENABLE_BIT -1:1], no_wr_data, no_enable_bit, from_cpu[0]};
+assign from_fwd_padded = {from_fwd[ADDR_WIDTH + `ENABLE_BIT -1:1], no_wr_data, no_enable_bit, from_fwd[0]};
 
 
-mux3 # (ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT) ping_mux (
+mux3 # (ADDR_WIDTH + DATA_WIDTH + 2*`ENABLE_BIT) ping_mux (
 	.A(from_sn_padded),
 	.B(from_cpu_padded),
 	.C(from_fwd_padded),
@@ -137,7 +139,7 @@ mux3 # (ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT) ping_mux (
 	.D(to_ping)
 );
 
-mux3 # (ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT) pang_mux (
+mux3 # (ADDR_WIDTH + DATA_WIDTH + 2*`ENABLE_BIT) pang_mux (
 	.A(from_sn_padded),
 	.B(from_cpu_padded),
 	.C(from_fwd_padded),
@@ -145,7 +147,7 @@ mux3 # (ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT) pang_mux (
 	.D(to_pang)
 );
 
-mux3 # (ADDR_WIDTH + `WRITE_WIDTH + 2*`ENABLE_BIT) pung_mux (
+mux3 # (ADDR_WIDTH + DATA_WIDTH + 2*`ENABLE_BIT) pung_mux (
 	.A(from_sn_padded),
 	.B(from_cpu_padded),
 	.C(from_fwd_padded),

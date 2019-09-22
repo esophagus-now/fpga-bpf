@@ -8,21 +8,19 @@ Basically just connects bpfvm_ctrl.v and bpfvm_datapath.v together into one bloc
 */
 
 
-module bpfcpu # (parameter
-	CODE_ADDR_WIDTH = 10,
-	CODE_DATA_WIDTH = 64,
-	PACKET_BYTE_ADDR_WIDTH = 12,
-	PACKET_ADDR_WIDTH = (PACKET_BYTE_ADDR_WIDTH - 2),
-	PACKET_DATA_WIDTH = 32
+module bpfcpu # (
+    parameter CODE_ADDR_WIDTH = 10, // codemem depth = 2^CODE_ADDR_WIDTH
+    parameter PACKET_BYTE_ADDR_WIDTH = 12, // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
+    parameter SNOOP_FWD_ADDR_WIDTH = 9
 )(
 	input wire rst,
 	input wire clk,
 	input wire mem_ready, //Signal from packetmem.v
-	input wire [PACKET_ADDR_WIDTH-1:0] packet_len,
+	input wire [SNOOP_FWD_ADDR_WIDTH-1:0] packet_len, //TODO: fix this terrible packet length logic
 	output wire packet_mem_rd_en,
 	output wire inst_mem_rd_en,
-	input wire [CODE_DATA_WIDTH-1:0] inst_mem_data,
-	input wire [PACKET_DATA_WIDTH-1:0] packet_data, //Hardcoded to 32 bits. Final decision.
+	input wire [63:0] inst_mem_data, //Instructions always 64 bits wide
+	input wire [31:0] packet_data, //Hardcoded to 32 bits. Final decision.
 	output wire [PACKET_BYTE_ADDR_WIDTH-1:0] packet_addr,
 	output wire [CODE_ADDR_WIDTH-1:0] inst_rd_addr,
 	output wire [1:0] transfer_sz,
@@ -88,7 +86,6 @@ bpfvm_ctrl controller(
 
 bpfvm_datapath # (
 	.CODE_ADDR_WIDTH(CODE_ADDR_WIDTH),
-	.CODE_DATA_WIDTH(CODE_DATA_WIDTH),
 	.PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH)
 ) datapath (
 	.rst(rst),

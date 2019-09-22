@@ -19,7 +19,7 @@ Okay, I've confirmed this uses BRAMs.
 module coderam # (parameter
     ADDR_WIDTH = 10,
     DATA_WIDTH = 64, //TODO: I might try shrinking the opcodes at some point
-    localparam DEPTH = /*2**ADDR_WIDTH*/ 256 //This is to see if using a single BRAM gets rid of slice LUTs
+    localparam DEPTH = 2**ADDR_WIDTH
 )(
     input wire clk,
     input wire en, //Clock enable

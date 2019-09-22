@@ -7,16 +7,14 @@ whether the machine is started/stopped, as well as to send in new instructions. 
 includes an AXI Stream snooper and forwarder.
 */
 
-//TODO: Should these be parameters? And by the way, there are a lot of hardcoded widths
-`define CODE_ADDR_WIDTH 10
-`define CODE_DATA_WIDTH 64 
-`define PACKET_BYTE_ADDR_WIDTH 12
-`define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 2)
-`define PACKET_DATA_WIDTH 64
-
 module axistream_packetfilt # (
-    parameter AXI_ADDR_WIDTH = 32, // width of the AXI address bus
-    parameter [31:0] BASEADDR = 32'h00000000 // the register file's system base address 
+    parameter AXI_ADDR_WIDTH = 12, // width of the AXI address bus
+    parameter CODE_ADDR_WIDTH = 10, // codemem depth = 2^CODE_ADDR_WIDTH
+    parameter PACKET_BYTE_ADDR_WIDTH = 12, // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
+    parameter SNOOP_FWD_ADDR_WIDTH = 9,
+    //this makes the data width of the snooper and fwd equal to:
+    // 2^{3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH}
+    localparam PACKET_DATA_WIDTH = 2**(3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH)
 )(
 
     // Clock and Reset
@@ -59,32 +57,35 @@ module axistream_packetfilt # (
 	input wire fwd_TREADY,
 	
 	//AXI Stream interface
-	input wire [`PACKET_DATA_WIDTH-1:0] snoop_TDATA,
+	input wire [PACKET_DATA_WIDTH-1:0] snoop_TDATA,
 	input wire snoop_TVALID,
 	input wire snoop_TREADY, //Yes, this is an input. Remember that we're snooping!
 	input wire snoop_TLAST
 );
     
 //Interface to snooper
-wire [`PACKET_ADDR_WIDTH-1:0] snooper_wr_addr;
-wire [`PACKET_DATA_WIDTH-1:0] snooper_wr_data; //Hardcoded to 64 bits. TODO: make this a parameter?
+wire [SNOOP_FWD_ADDR_WIDTH-1:0] snooper_wr_addr;
+wire [PACKET_DATA_WIDTH-1:0] snooper_wr_data; //Hardcoded to 64 bits. TODO: make this a parameter?
 wire snooper_wr_en;
 wire snooper_done; //NOTE: this must be a 1-cycle pulse.
 wire ready_for_snooper;
 
 //Interface to forwarder
-wire [`PACKET_ADDR_WIDTH-1:0] forwarder_rd_addr;
+wire [SNOOP_FWD_ADDR_WIDTH-1:0] forwarder_rd_addr;
 wire [63:0] forwarder_rd_data;
 wire forwarder_rd_en;
 wire forwarder_done; //NOTE: this must be a 1-cycle pulse.
 wire ready_for_forwarder;
-wire [`PACKET_ADDR_WIDTH-1:0] len_to_forwarder;
+wire [SNOOP_FWD_ADDR_WIDTH-1:0] len_to_forwarder;
 
 
 
 packetfilt # (
     .AXI_ADDR_WIDTH(AXI_ADDR_WIDTH), // width of the AXI address bus
-    .BASEADDR(BASEADDR) // the register file's system base address 
+    .BASEADDR(0),
+    .CODE_ADDR_WIDTH(CODE_ADDR_WIDTH),
+    .PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH),
+    .SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)
 ) theFilter (   
 	// Clock and Reset
 	.axi_aclk(axi_aclk),
@@ -136,8 +137,8 @@ packetfilt # (
 );
 
 axistream_snooper # (
-	.DATA_WIDTH(`PACKET_DATA_WIDTH),
-	.ADDR_WIDTH(`PACKET_ADDR_WIDTH)
+	.DATA_WIDTH(PACKET_DATA_WIDTH),
+	.ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)
 ) el_snoopo (
 	.clk(axi_aclk),
 	
@@ -156,7 +157,8 @@ axistream_snooper # (
 );
 
 axistream_forwarder # (
-	.ADDR_WIDTH(`PACKET_ADDR_WIDTH)
+	.DATA_WIDTH(PACKET_DATA_WIDTH),
+	.ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)
 ) forward_unto_dawn (
 	.clk(axi_aclk),
 	

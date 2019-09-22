@@ -8,15 +8,15 @@ include some way to add a parameterizable number of snoopers as well as manage t
 configuration.
 */
 
-//TODO: Should these be parameters? And by the way, there are a lot of hardcoded widths
-`define CODE_ADDR_WIDTH 10
-`define CODE_DATA_WIDTH 64 
-`define PACKET_BYTE_ADDR_WIDTH 12
-`define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 2)
-
 module packetfilt # (
-    parameter AXI_ADDR_WIDTH = 32, // width of the AXI address bus
-    parameter [31:0] BASEADDR = 32'h00000000 // the register file's system base address 
+    parameter AXI_ADDR_WIDTH = 12, // width of the AXI address bus
+    parameter [31:0] BASEADDR = 32'h00000000, // the register file's system base address 
+    parameter CODE_ADDR_WIDTH = 10, // codemem depth = 2^CODE_ADDR_WIDTH
+    parameter PACKET_BYTE_ADDR_WIDTH = 12, // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
+    parameter SNOOP_FWD_ADDR_WIDTH = 9,
+    //this makes the data width of the snooper and fwd equal to:
+    // 2^{3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH}
+    localparam PACKET_DATA_WIDTH = 2**(3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH)
 )(
 
     // Clock and Reset
@@ -53,19 +53,19 @@ module packetfilt # (
     input  wire                      s_axi_bready,
     
     //Interface to snooper
-    input wire [`PACKET_ADDR_WIDTH-1:0] snooper_wr_addr,
+    input wire [SNOOP_FWD_ADDR_WIDTH-1:0] snooper_wr_addr,
 	input wire [63:0] snooper_wr_data, //Hardcoded to 64 bits. TODO: change this to a parameter?
 	input wire snooper_wr_en,
 	input wire snooper_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_snooper,
     
 	//Interface to forwarder
-	input wire [`PACKET_ADDR_WIDTH-1:0] forwarder_rd_addr,
+	input wire [SNOOP_FWD_ADDR_WIDTH-1:0] forwarder_rd_addr,
 	output wire [63:0] forwarder_rd_data,
 	input wire forwarder_rd_en,
 	input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_forwarder,
-	output wire [`PACKET_ADDR_WIDTH-1:0] len_to_forwarder
+	output wire [SNOOP_FWD_ADDR_WIDTH-1:0] len_to_forwarder
 );
 
     
@@ -81,9 +81,9 @@ wire [31:0] inst_high_value; // Value of register 'inst_high'; field 'value'
 
 
 //Interface to codemem
-wire [`CODE_ADDR_WIDTH-1:0] code_mem_wr_addr;
-wire [`CODE_DATA_WIDTH-1:0] code_mem_wr_data;
-wire code_mem_wr_en;
+wire [CODE_ADDR_WIDTH-1:0] code_mem_wr_addr;
+wire [63:0] code_mem_wr_data; //Instructions are always 64 bits wide
+wire code_mem_wr_en; 
 
 regstrb2mem read_inst_regs (
 	.clk(axi_aclk),

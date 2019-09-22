@@ -23,26 +23,26 @@ By the way, packetramtb.sv has a(N OUT OF DATE) simple testbench for this file.
 
 
 module packetram_wrapped # (parameter 
-    ADDR_WIDTH = 10,
-    DATA_WIDTH = 32
+    PORT_ADDR_WIDTH = 10,
+    PORT_DATA_WIDTH = 32
 )(
     input clk,
     input en, //clock enable
 
-    input [ADDR_WIDTH-1:0] addra,
-    input [ADDR_WIDTH-1:0] addrb,
-    output reg [DATA_WIDTH-1:0] doa,
-    output reg [DATA_WIDTH-1:0] dob,
+    input [PORT_ADDR_WIDTH-1:0] addra,
+    input [PORT_ADDR_WIDTH-1:0] addrb,
+    output reg [PORT_DATA_WIDTH-1:0] doa,
+    output reg [PORT_DATA_WIDTH-1:0] dob,
     
-    input [DATA_WIDTH-1:0] dia,
-    input [DATA_WIDTH-1:0] dib,
+    input [PORT_ADDR_WIDTH-1:0] dia,
+    input [PORT_ADDR_WIDTH-1:0] dib,
     input wr_en
 
 );
 
-localparam DEPTH = 2**ADDR_WIDTH;
+localparam DEPTH = 2**PORT_ADDR_WIDTH;
 
-reg [DATA_WIDTH-1:0] data [0:DEPTH-1];
+reg [PORT_DATA_WIDTH-1:0] data [0:DEPTH-1];
 
 always @(posedge clk) begin
     if (en) begin
@@ -64,24 +64,24 @@ end
 endmodule
 
 //Chenge to use rd_en instead of clock enable
-module packet_ram # (parameter 
-    ADDR_WIDTH = 10,
-    DATA_WIDTH = 64
+module packet_ram # (
+	parameter PORT_ADDR_WIDTH = 10,
+    parameter PORT_DATA_WIDTH = 32
 )(
     input clk,
-    input [ADDR_WIDTH-1:0] addra,
-    input [DATA_WIDTH-1:0] di,
+    input [PORT_ADDR_WIDTH-1:0] addra,
+    input [2*PORT_DATA_WIDTH-1:0] di,
     input wr_en,
     input rd_en, //read enable
-    output [DATA_WIDTH-1:0] do,
+    output [2*PORT_DATA_WIDTH-1:0] do,
     
     //Signals for managing length
     //TODO: This logic is spread all over the place. Fix that.
     input wire len_rst,
-    output reg [ADDR_WIDTH-1:0] len = 0
+    output reg [PORT_ADDR_WIDTH-1:0] len = 0
 );
 
-wire [ADDR_WIDTH-1:0] addrb;
+wire [PORT_ADDR_WIDTH-1:0] addrb;
 assign addrb = addra + 1;
 
 always @(posedge clk) begin
@@ -90,19 +90,19 @@ always @(posedge clk) begin
 end
 
 packetram_wrapped # ( 
-    .ADDR_WIDTH(ADDR_WIDTH),
-    .DATA_WIDTH(DATA_WIDTH/2)
+    .PORT_ADDR_WIDTH(PORT_ADDR_WIDTH),
+    .PORT_DATA_WIDTH(PORT_DATA_WIDTH)
 ) meminst (
 	.clk(clk),
 	.en(wr_en | rd_en), //clock enable
 
 	.addra(addra),
 	.addrb(addrb),
-	.doa(do[DATA_WIDTH-1:DATA_WIDTH/2]),
-	.dob(do[DATA_WIDTH/2-1:0]),
+	.doa(do[2*PORT_DATA_WIDTH-1:PORT_DATA_WIDTH]),
+	.dob(do[PORT_DATA_WIDTH-1:0]),
     
-	.dia(di[DATA_WIDTH-1:DATA_WIDTH/2]),
-	.dib(di[DATA_WIDTH/2-1:0]),
+	.dia(di[2*PORT_DATA_WIDTH-1:PORT_DATA_WIDTH]),
+	.dib(di[PORT_DATA_WIDTH-1:0]),
 	.wr_en(wr_en)
 );
 

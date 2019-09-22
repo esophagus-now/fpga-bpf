@@ -9,20 +9,21 @@ last stipulation in the official AXI Stream spec.
 
 
 module axistream_forwarder # (parameter
-	ADDR_WIDTH = 10
+	DATA_WIDTH = 64,
+	ADDR_WIDTH = 9
 )(
 	
 	input wire clk,
 	
 	//AXI Stream interface
-	output wire [63:0] TDATA, //Registered in another module
+	output wire [DATA_WIDTH-1:0] TDATA, //Registered in another module
 	output reg TVALID = 0,
 	output reg TLAST,
 	input wire TREADY,	
 	
 	//Interface to packetmem
 	output reg [ADDR_WIDTH-1:0] forwarder_rd_addr = 0,
-	input wire [63:0] forwarder_rd_data,
+	input wire [DATA_WIDTH-1:0] forwarder_rd_data,
 	output wire forwarder_rd_en,
 	output wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
 	input wire ready_for_forwarder,
@@ -40,7 +41,7 @@ assign TLAST_next = (forwarder_rd_addr > maxaddr && forwarder_rd_en);
 //The next flit in TDATA is the last, in this case 
 
 wire [ADDR_WIDTH-1:0] next_addr;
-assign next_addr = (ready_for_forwarder && forwarder_rd_en) ? ((forwarder_rd_addr > maxaddr) ? 0 : forwarder_rd_addr+2) : forwarder_rd_addr;
+assign next_addr = (ready_for_forwarder && forwarder_rd_en) ? ((forwarder_rd_addr > maxaddr) ? 0 : forwarder_rd_addr+1) : forwarder_rd_addr;
 
 //We need to enable a read under the following circumstances:
 // TVALID	|	TREADY	|	ready_for_forwarder |	rd_en

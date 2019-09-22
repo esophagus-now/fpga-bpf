@@ -40,7 +40,7 @@ wire [`PACKET_DATA_WIDTH-1:0] forwarder_rd_data;
 wire forwarder_rd_en;
 wire forwarder_done; //NOTE: this must be a 1-cycle pulse.
 wire ready_for_forwarder;
-wire [`PACKET_ADDR_WIDTH-1:0] len_to_forwarder;
+wire [`PACKET_ADDR_WIDTH+1-1:0] len_to_forwarder;
 
 //AXI Stream interface into snooper
 reg [`PACKET_DATA_WIDTH-1:0] snoop_tdata;

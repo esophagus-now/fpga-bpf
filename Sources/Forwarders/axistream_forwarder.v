@@ -34,17 +34,17 @@ module axistream_forwarder # (parameter
 );
 
 //Calculate max addr
-wire [`PLEN_WIDTH-1:0] maxaddr;
-assign maxaddr = len_to_forwarder;
+wire [ADDR_WIDTH-1:0] maxaddr;
+assign maxaddr = len_to_forwarder[`PLEN_WIDTH-1 -: ADDR_WIDTH];
 
 assign TDATA = forwarder_rd_data; 
 
 wire TLAST_next;
-assign TLAST_next = (forwarder_rd_addr > maxaddr && forwarder_rd_en);
+assign TLAST_next = (forwarder_rd_addr >= maxaddr && forwarder_rd_en);
 //The next flit in TDATA is the last, in this case 
 
 wire [ADDR_WIDTH-1:0] next_addr;
-assign next_addr = (ready_for_forwarder && forwarder_rd_en) ? ((forwarder_rd_addr > maxaddr) ? 0 : forwarder_rd_addr+1) : forwarder_rd_addr;
+assign next_addr = (ready_for_forwarder && forwarder_rd_en) ? ((forwarder_rd_addr >= maxaddr) ? 0 : forwarder_rd_addr+1) : forwarder_rd_addr;
 
 //We need to enable a read under the following circumstances:
 // TVALID	|	TREADY	|	ready_for_forwarder |	rd_en
@@ -63,7 +63,7 @@ assign next_addr = (ready_for_forwarder && forwarder_rd_en) ? ((forwarder_rd_add
 // (A + B')(B + B') = 	(Distribute OR over AND)
 // A + B'
 // This is equal to, ready_for_forwarder && (!TVALID || (TVALID && TREADY))
-assign forwarder_rd_en = (ready_for_forwarder && (TREADY || !TVALID));
+assign forwarder_rd_en = (ready_for_forwarder && (TREADY || !TVALID) && !TLAST);
 
 wire TVALID_next;
 //I should do another truth table:
@@ -89,7 +89,7 @@ always @(posedge clk) begin
 	TLAST <= TLAST_next;
 end
 
-assign forwarder_done = TLAST_next && ready_for_forwarder;
+assign forwarder_done = TLAST && TVALID && ready_for_forwarder;
 
 endmodule
 

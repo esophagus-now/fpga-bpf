@@ -7,6 +7,8 @@ Wires up the BPF CPU core (bpfcpu.v) with instruction and packet memory.
 */
 
 `define PACKET_DATA_WIDTH (2**(3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH))
+//God what a mess... need to fix the packet length soon!
+`define PLEN_WIDTH (SNOOP_FWD_ADDR_WIDTH+1)
  
 module bpfvm # (
     parameter CODE_ADDR_WIDTH = 10, // codemem depth = 2^CODE_ADDR_WIDTH
@@ -35,7 +37,7 @@ module bpfvm # (
 	input wire forwarder_rd_en,
 	input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_forwarder,
-	output wire [SNOOP_FWD_ADDR_WIDTH-1:0] len_to_forwarder
+	output wire [`PLEN_WIDTH-1:0] len_to_forwarder
 );
 
 //Wires from codemem to/from CPU
@@ -51,7 +53,7 @@ wire [1:0] transfer_sz;
 wire ready_for_cpu;
 wire cpu_acc;
 wire cpu_rej;
-wire [SNOOP_FWD_ADDR_WIDTH-1:0] len_to_cpu; //TODO: fix this terrible packet length logic
+wire [`PLEN_WIDTH-1:0] len_to_cpu; //TODO: fix this terrible packet length logic
 	
 bpfcpu # (
 	.CODE_ADDR_WIDTH(CODE_ADDR_WIDTH),
@@ -121,3 +123,4 @@ codemem # (
 endmodule
 
 `undef PACKET_DATA_WIDTH
+`undef PLEN_WIDTH

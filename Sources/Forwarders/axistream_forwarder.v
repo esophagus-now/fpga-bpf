@@ -8,6 +8,9 @@ last stipulation in the official AXI Stream spec.
 */
 
 
+//God what a mess... need to fix the packet length soon!
+`define PLEN_WIDTH (ADDR_WIDTH+1)
+
 module axistream_forwarder # (parameter
 	DATA_WIDTH = 64,
 	ADDR_WIDTH = 9
@@ -27,11 +30,11 @@ module axistream_forwarder # (parameter
 	output wire forwarder_rd_en,
 	output wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
 	input wire ready_for_forwarder,
-	input wire [ADDR_WIDTH-1:0] len_to_forwarder
+	input wire [`PLEN_WIDTH-1:0] len_to_forwarder
 );
 
 //Calculate max addr
-wire [ADDR_WIDTH-1:0] maxaddr;
+wire [`PLEN_WIDTH-1:0] maxaddr;
 assign maxaddr = len_to_forwarder;
 
 assign TDATA = forwarder_rd_data; 
@@ -89,3 +92,5 @@ end
 assign forwarder_done = TLAST_next && ready_for_forwarder;
 
 endmodule
+
+`undef PLEN_WIDTH

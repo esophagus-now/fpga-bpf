@@ -8,6 +8,9 @@ Basically just connects bpfvm_ctrl.v and bpfvm_datapath.v together into one bloc
 */
 
 
+//God what a mess... need to fix the packet length soon!
+`define PLEN_WIDTH (SNOOP_FWD_ADDR_WIDTH+1)
+
 module bpfcpu # (
     parameter CODE_ADDR_WIDTH = 10, // codemem depth = 2^CODE_ADDR_WIDTH
     parameter PACKET_BYTE_ADDR_WIDTH = 12, // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
@@ -16,7 +19,7 @@ module bpfcpu # (
 	input wire rst,
 	input wire clk,
 	input wire mem_ready, //Signal from packetmem.v
-	input wire [SNOOP_FWD_ADDR_WIDTH-1:0] packet_len, //TODO: fix this terrible packet length logic
+	input wire [`PLEN_WIDTH-1:0] packet_len, //TODO: fix this terrible packet length logic
 	output wire packet_mem_rd_en,
 	output wire inst_mem_rd_en,
 	input wire [63:0] inst_mem_data, //Instructions always 64 bits wide
@@ -118,3 +121,5 @@ bpfvm_datapath # (
 );
 
 endmodule
+
+`undef PLEN_WIDTH

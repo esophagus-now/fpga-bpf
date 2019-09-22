@@ -8,12 +8,14 @@ includes an AXI Stream snooper and forwarder.
 */
 
 `define PACKET_DATA_WIDTH (2**(3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH))
+//God what a mess... need to fix the packet length soon!
+`define PLEN_WIDTH (SNOOP_FWD_ADDR_WIDTH+1)
 
 module axistream_packetfilt # (
     parameter AXI_ADDR_WIDTH = 12, // width of the AXI address bus
     parameter CODE_ADDR_WIDTH = 10, // codemem depth = 2^CODE_ADDR_WIDTH
     parameter PACKET_BYTE_ADDR_WIDTH = 12, // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
-    parameter SNOOP_FWD_ADDR_WIDTH = 6
+    parameter SNOOP_FWD_ADDR_WIDTH = 9
     //this makes the data width of the snooper and fwd equal to:
     // 2^{3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH}
 )(
@@ -77,7 +79,7 @@ wire [`PACKET_DATA_WIDTH-1:0] forwarder_rd_data;
 wire forwarder_rd_en;
 wire forwarder_done; //NOTE: this must be a 1-cycle pulse.
 wire ready_for_forwarder;
-wire [SNOOP_FWD_ADDR_WIDTH-1:0] len_to_forwarder;
+wire [`PLEN_WIDTH-1:0] len_to_forwarder;
 
 
 
@@ -179,5 +181,5 @@ axistream_forwarder # (
 );
 endmodule
 
-
 `undef PACKET_DATA_WIDTH
+`undef PLEN_WIDTH

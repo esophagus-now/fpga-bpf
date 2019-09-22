@@ -10,6 +10,8 @@ configuration.
 
 //I didn't have great luck with localparams
 `define PACKET_DATA_WIDTH (2**(3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH))
+//God what a mess... need to fix the packet length soon!
+`define PLEN_WIDTH (SNOOP_FWD_ADDR_WIDTH+1)
 
 module packetfilt # (
     parameter AXI_ADDR_WIDTH = 12, // width of the AXI address bus
@@ -67,7 +69,7 @@ module packetfilt # (
 	input wire forwarder_rd_en,
 	input wire forwarder_done, //NOTE: this must be a 1-cycle pulse.
 	output wire ready_for_forwarder,
-	output wire [SNOOP_FWD_ADDR_WIDTH-1:0] len_to_forwarder
+	output wire [`PLEN_WIDTH-1:0] len_to_forwarder
 );
 
     
@@ -185,3 +187,4 @@ endmodule
 
 
 `undef PACKET_DATA_WIDTH
+`undef PLEN_WIDTH

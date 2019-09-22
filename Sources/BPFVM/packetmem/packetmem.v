@@ -206,3 +206,4 @@ endmodule
 `undef SNOOP_FWD_DATA_WIDTH
 `undef PORT_DATA_WIDTH
 `undef PORT_ADDR_WIDTH
+`undef PLEN_WIDTH

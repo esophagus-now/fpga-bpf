@@ -39,8 +39,6 @@ module read_size_adapter # (
     output wire [31:0] resized_mem_data //zero-padded on the left (when necessary)
 );
 
-localparam [N-2:0] scale = 0;
-
 assign word_rd_addra = byte_rd_addr[PACKET_BYTE_ADDR_WIDTH-1 : N-1];
 
 //The offset into the 2*PORT_DATA_WIDTH bit word returned from the packet memory
@@ -61,7 +59,7 @@ end
 
 //This "selected" vector is the desired part of the 64-bit word, based on the offset
 wire [31:0] selected;
-assign selected = bigword[2*PORT_DATA_WIDTH-1 - {offset_r, scale} -: 32];
+assign selected = bigword[(2*PORT_DATA_WIDTH - {offset_r, 3'b0} )-1 -: 32];
 
 //odata is zero-padded if you ask for a smaller size
 assign resized_mem_data[7:0] = (sz_r == `BPF_W) ? selected[7:0]: 

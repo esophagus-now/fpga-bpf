@@ -34,8 +34,8 @@ module packetram_wrapped # (parameter
     output reg [PORT_DATA_WIDTH-1:0] doa,
     output reg [PORT_DATA_WIDTH-1:0] dob,
     
-    input [PORT_ADDR_WIDTH-1:0] dia,
-    input [PORT_ADDR_WIDTH-1:0] dib,
+    input [PORT_DATA_WIDTH-1:0] dia,
+    input [PORT_DATA_WIDTH-1:0] dib,
     input wr_en
 
 );

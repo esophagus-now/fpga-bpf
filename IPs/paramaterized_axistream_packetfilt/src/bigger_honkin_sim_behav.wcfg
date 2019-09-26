@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="bigger_honkin_sim_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="bigger_honkin_sim" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="1400000001fs"></ZoomEndTime>
+      <Cursor1Time time="1400000000fs"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="238"></NameColumnWidth>
+      <ValueColumnWidth column_width="78"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="41" />
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/clk">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/rst">
+      <obj_property name="ElementShortName">rst</obj_property>
+      <obj_property name="ObjectShortName">rst</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/code_mem_wr_addr">
+      <obj_property name="ElementShortName">code_mem_wr_addr[9:0]</obj_property>
+      <obj_property name="ObjectShortName">code_mem_wr_addr[9:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/code_mem_wr_data">
+      <obj_property name="ElementShortName">code_mem_wr_data[63:0]</obj_property>
+      <obj_property name="ObjectShortName">code_mem_wr_data[63:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/code_mem_wr_en">
+      <obj_property name="ElementShortName">code_mem_wr_en</obj_property>
+      <obj_property name="ObjectShortName">code_mem_wr_en</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/snooper_wr_addr">
+      <obj_property name="ElementShortName">snooper_wr_addr[7:0]</obj_property>
+      <obj_property name="ObjectShortName">snooper_wr_addr[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/snooper_wr_data">
+      <obj_property name="ElementShortName">snooper_wr_data[127:0]</obj_property>
+      <obj_property name="ObjectShortName">snooper_wr_data[127:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/snooper_wr_en">
+      <obj_property name="ElementShortName">snooper_wr_en</obj_property>
+      <obj_property name="ObjectShortName">snooper_wr_en</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/snooper_done">
+      <obj_property name="ElementShortName">snooper_done</obj_property>
+      <obj_property name="ObjectShortName">snooper_done</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/ready_for_snooper">
+      <obj_property name="ElementShortName">ready_for_snooper</obj_property>
+      <obj_property name="ObjectShortName">ready_for_snooper</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/forwarder_rd_addr">
+      <obj_property name="ElementShortName">forwarder_rd_addr[7:0]</obj_property>
+      <obj_property name="ObjectShortName">forwarder_rd_addr[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/forwarder_rd_data">
+      <obj_property name="ElementShortName">forwarder_rd_data[127:0]</obj_property>
+      <obj_property name="ObjectShortName">forwarder_rd_data[127:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/forwarder_rd_en">
+      <obj_property name="ElementShortName">forwarder_rd_en</obj_property>
+      <obj_property name="ObjectShortName">forwarder_rd_en</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/forwarder_done">
+      <obj_property name="ElementShortName">forwarder_done</obj_property>
+      <obj_property name="ObjectShortName">forwarder_done</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/ready_for_forwarder">
+      <obj_property name="ElementShortName">ready_for_forwarder</obj_property>
+      <obj_property name="ObjectShortName">ready_for_forwarder</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/len_to_forwarder">
+      <obj_property name="ElementShortName">len_to_forwarder[8:0]</obj_property>
+      <obj_property name="ObjectShortName">len_to_forwarder[8:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/snoop_tdata">
+      <obj_property name="ElementShortName">snoop_tdata[127:0]</obj_property>
+      <obj_property name="ObjectShortName">snoop_tdata[127:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/snoop_tvalid">
+      <obj_property name="ElementShortName">snoop_tvalid</obj_property>
+      <obj_property name="ObjectShortName">snoop_tvalid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/snoop_tready">
+      <obj_property name="ElementShortName">snoop_tready</obj_property>
+      <obj_property name="ObjectShortName">snoop_tready</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/snoop_tlast">
+      <obj_property name="ElementShortName">snoop_tlast</obj_property>
+      <obj_property name="ObjectShortName">snoop_tlast</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/TDATA">
+      <obj_property name="ElementShortName">TDATA[127:0]</obj_property>
+      <obj_property name="ObjectShortName">TDATA[127:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/TVALID">
+      <obj_property name="ElementShortName">TVALID</obj_property>
+      <obj_property name="ObjectShortName">TVALID</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/TLAST">
+      <obj_property name="ElementShortName">TLAST</obj_property>
+      <obj_property name="ObjectShortName">TLAST</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/TREADY">
+      <obj_property name="ElementShortName">TREADY</obj_property>
+      <obj_property name="ObjectShortName">TREADY</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/fd">
+      <obj_property name="ElementShortName">fd[31:0]</obj_property>
+      <obj_property name="ObjectShortName">fd[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/packets_left">
+      <obj_property name="ElementShortName">packets_left[31:0]</obj_property>
+      <obj_property name="ObjectShortName">packets_left[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider89" type="divider">
+      <obj_property name="label">Forwarder</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/forward_unto_dawn/forwarder_rd_addr">
+      <obj_property name="ElementShortName">forwarder_rd_addr[7:0]</obj_property>
+      <obj_property name="ObjectShortName">forwarder_rd_addr[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/forward_unto_dawn/forwarder_rd_data">
+      <obj_property name="ElementShortName">forwarder_rd_data[127:0]</obj_property>
+      <obj_property name="ObjectShortName">forwarder_rd_data[127:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/forward_unto_dawn/forwarder_rd_en">
+      <obj_property name="ElementShortName">forwarder_rd_en</obj_property>
+      <obj_property name="ObjectShortName">forwarder_rd_en</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/forward_unto_dawn/len_to_forwarder">
+      <obj_property name="ElementShortName">len_to_forwarder[8:0]</obj_property>
+      <obj_property name="ObjectShortName">len_to_forwarder[8:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/forward_unto_dawn/ready_for_forwarder">
+      <obj_property name="ElementShortName">ready_for_forwarder</obj_property>
+      <obj_property name="ObjectShortName">ready_for_forwarder</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/forward_unto_dawn/forwarder_done">
+      <obj_property name="ElementShortName">forwarder_done</obj_property>
+      <obj_property name="ObjectShortName">forwarder_done</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider114" type="divider">
+      <obj_property name="label">P3Ctrl</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/PF/\VMs[2].the_VM /packmem/dispatcher/A_done">
+      <obj_property name="ElementShortName">A_done</obj_property>
+      <obj_property name="ObjectShortName">A_done</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/PF/\VMs[2].the_VM /packmem/dispatcher/B_acc">
+      <obj_property name="ElementShortName">B_acc</obj_property>
+      <obj_property name="ObjectShortName">B_acc</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/PF/\VMs[2].the_VM /packmem/dispatcher/B_rej">
+      <obj_property name="ElementShortName">B_rej</obj_property>
+      <obj_property name="ObjectShortName">B_rej</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/PF/\VMs[2].the_VM /packmem/dispatcher/C_done">
+      <obj_property name="ElementShortName">C_done</obj_property>
+      <obj_property name="ObjectShortName">C_done</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/\VMs[2].the_VM /packmem/dispatcher/sn_sel">
+      <obj_property name="ElementShortName">sn_sel[1:0]</obj_property>
+      <obj_property name="ObjectShortName">sn_sel[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/\VMs[2].the_VM /packmem/dispatcher/cpu_sel">
+      <obj_property name="ElementShortName">cpu_sel[1:0]</obj_property>
+      <obj_property name="ObjectShortName">cpu_sel[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/\VMs[2].the_VM /packmem/dispatcher/fwd_sel">
+      <obj_property name="ElementShortName">fwd_sel[1:0]</obj_property>
+      <obj_property name="ObjectShortName">fwd_sel[1:0]</obj_property>
+   </wvobject>
+</wave_config>

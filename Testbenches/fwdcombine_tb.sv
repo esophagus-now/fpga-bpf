@@ -11,7 +11,7 @@ B__/       \(left)
              /
 C__         /(right)
    \_comb2_/
-D)_/
+D__/
 */
 
 `define DATA_WIDTH 64
@@ -59,18 +59,18 @@ reg ready_for_forwarder_D;
 reg [`PLEN_WIDTH-1:0] len_to_forwarder_D;
 
 //"Output" of comb1. To be used as input to comb0 on the left
-reg [`ADDR_WIDTH-1:0] forwarder_rd_addr_comb1;
+wire [`ADDR_WIDTH-1:0] forwarder_rd_addr_comb1;
 wire [`DATA_WIDTH-1:0] forwarder_rd_data_comb1;
-reg forwarder_rd_en_comb1;
-reg forwarder_done_comb1; //NOTE: this must be a 1-cycle pulse.
+wire forwarder_rd_en_comb1;
+wire forwarder_done_comb1; //NOTE: this must be a 1-cycle pulse.
 wire ready_for_forwarder_comb1;
 wire [`PLEN_WIDTH-1:0] len_to_forwarder_comb1;
 
 //"Output" of comb2. To be used as input to comb0 on the right
-reg [`ADDR_WIDTH-1:0] forwarder_rd_addr_comb2;
+wire [`ADDR_WIDTH-1:0] forwarder_rd_addr_comb2;
 wire [`DATA_WIDTH-1:0] forwarder_rd_data_comb2;
-reg forwarder_rd_en_comb2;
-reg forwarder_done_comb2; //NOTE: this must be a 1-cycle pulse.
+wire forwarder_rd_en_comb2;
+wire forwarder_done_comb2; //NOTE: this must be a 1-cycle pulse.
 wire ready_for_forwarder_comb2;
 wire [`PLEN_WIDTH-1:0] len_to_forwarder_comb2;
 
@@ -81,6 +81,83 @@ reg forwarder_rd_en;
 reg forwarder_done; //NOTE: this must be a 1-cycle pulse.
 wire ready_for_forwarder;
 wire [`PLEN_WIDTH-1:0] len_to_forwarder;
+
+initial begin
+	clk <= 0;
+	forwarder_rd_addr <= 0;
+	forwarder_rd_en <= 0;
+	forwarder_done <= 0;
+	
+	forwarder_rd_data_A <= 0;
+	ready_for_forwarder_A <= 1;
+	len_to_forwarder_A <= 'hA;
+	
+	forwarder_rd_data_B <= 0;
+	ready_for_forwarder_B <= 1;
+	len_to_forwarder_B <= 'hB;
+	
+	forwarder_rd_data_C <= 0;
+	ready_for_forwarder_C <= 1;
+	len_to_forwarder_C <= 'hC;
+	
+	forwarder_rd_data_D <= 0;
+	ready_for_forwarder_D <= 1;
+	len_to_forwarder_D <= 'hD;
+end
+
+always #5 clk <= ~clk;
+
+always @(posedge clk) begin
+	forwarder_rd_data_A <= $random;
+	forwarder_rd_data_B <= $random;
+	forwarder_rd_data_C <= $random;
+	forwarder_rd_data_D <= $random;
+	
+	forwarder_rd_en <= $random;
+	forwarder_rd_addr <= forwarder_rd_addr + 1;
+end
+
+initial begin
+	`LONG_DELAY;
+	forwarder_done <= 1; //finished reading from A; B should be selected
+	`SYNC;
+	forwarder_done <= 0;
+	ready_for_forwarder_A <= 0;
+	
+	`LONG_DELAY;
+	forwarder_done <= 1; //finished reading from B; C should be selected
+	`SYNC;
+	forwarder_done <= 0;
+	ready_for_forwarder_B <= 0;
+	
+	`SHORT_DELAY;
+	ready_for_forwarder_A <= 1; //A becomes ready...
+	
+	`SHORT_DELAY;
+	forwarder_done <= 1; //finished writing into C; A should be selected
+	`SYNC;
+	forwarder_done <= 0;
+	ready_for_forwarder_C <= 0;
+	
+	`LONG_DELAY;
+	forwarder_done <= 1; //finished reading from A; D should be selected
+	`SYNC;
+	forwarder_done <= 0;
+	ready_for_forwarder_A <= 0;
+	
+	`LONG_DELAY;
+	forwarder_done <= 1; //finished reading from D; everything should stop now
+	`SYNC;
+	forwarder_done <= 0;
+	ready_for_forwarder_D <= 0;
+	
+	`SHORT_DELAY;
+	`LONG_DELAY;
+	ready_for_forwarder_C <= 1; //C should be immediately selected
+	
+	`LONG_DELAY;
+	$finish;
+end
 
 fwdcombine # (
 	.DATA_WIDTH(`DATA_WIDTH),

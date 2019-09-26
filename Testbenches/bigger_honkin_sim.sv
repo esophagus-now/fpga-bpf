@@ -151,18 +151,18 @@ end
 
 always @(posedge clk) begin
 	if (snooper_done) packets_left++;
-	if (VM.cpu_rej) packets_left--;
+	if (PF.the_VM.cpu_rej) packets_left--;
 	if (forwarder_done) packets_left--;
 	if (packets_left == 0 && $feof(fd)) ->done_processing;
 end
 
-bpfvm # (
+packetfilt # (
     .CODE_ADDR_WIDTH(`CODE_ADDR_WIDTH), // codemem depth = 2^CODE_ADDR_WIDTH
     .PACKET_BYTE_ADDR_WIDTH(`PACKET_BYTE_ADDR_WIDTH), // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
     .SNOOP_FWD_ADDR_WIDTH(`PACKET_ADDR_WIDTH)
-) VM (
+) PF (
 	.rst(rst),
-	.clk(clk),
+	.axi_aclk(clk),
 	//Interface to an external module which will fill codemem
 	.code_mem_wr_addr(code_mem_wr_addr),
 	.code_mem_wr_data(code_mem_wr_data),

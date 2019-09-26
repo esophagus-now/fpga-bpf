@@ -16,7 +16,6 @@ module fwdcombine # (parameter
 	ADDR_WIDTH = 9
 )(
 	input wire clk,
-	input wire sel,	
 	
 	//Interface to packetmem, as the output of the VM (or the last split stage)
 	output wire [ADDR_WIDTH-1:0] forwarder_rd_addr_left,
@@ -41,7 +40,27 @@ module fwdcombine # (parameter
 	output wire ready_for_forwarder,
 	output wire [`PLEN_WIDTH-1:0] len_to_forwarder
 );
-	
+
+wire sel;
+
+//Subtlety: we can only change our choice between packets. 
+//This occurs _one cycle after_ done is asserted, or if nothing was ready on the last cycle
+//ASSUMES: ready_for_forwarder never goes low intermittently inside of a single packet
+reg do_select = 0;
+always @(posedge clk) do_select <= forwarder_done || (!ready_for_forwarder_left && !ready_for_forwarder_right);
+
+reg sel_saved = 0; //Hold onto last choice in case we're not allowed to change choice
+//(that is, when done_delayed is false)
+
+assign sel = 
+	do_select ? 
+		(ready_for_forwarder_left ? 0 : (ready_for_forwarder_right ? 1 : 0))
+		:
+		sel_saved
+	;
+
+always @(posedge clk) sel_saved = sel;
+
 //"Right to left" signals 
 assign forwarder_rd_addr_left = forwarder_rd_addr;
 assign forwarder_rd_addr_right = forwarder_rd_addr;

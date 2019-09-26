@@ -97,11 +97,11 @@ wire [CODE_ADDR_WIDTH-1:0] code_mem_wr_addr;
 wire [63:0] code_mem_wr_data; //Instructions are always 64 bits wide
 wire code_mem_wr_en; 
 
-packetfilt # (
+parallel_packetfilts # (
     .CODE_ADDR_WIDTH(CODE_ADDR_WIDTH),
     .PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH),
-    .SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)//,
-    //.N(5)
+    .SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH),
+    .N(5)
 ) theFilter (   
 	// Clock and Reset
 	.axi_aclk(axi_aclk),

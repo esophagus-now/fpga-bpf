@@ -74,7 +74,9 @@ for (i = 0; i < N; i = i+1) begin : VMs
 	wire ready_for_snooper_local;
 	
 	//Does direction matter?
-	//Turns out it doesn't, so in the future I may come back and make this all consistent
+	//The order ABSOLUTELY MATTERS!!!!!!!
+	//I really wish Verilog would just be smart and realize which one is the driver,
+	//even if it is on the RHS of the =...
 	assign snooper_wr_addr_local = `SNOOP_LOCAL[SNOOP_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH];
 	assign snooper_wr_data_local = `SNOOP_LOCAL[SNOOP_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH];
 	assign snooper_wr_en_local = `SNOOP_LOCAL[2];
@@ -89,8 +91,8 @@ for (i = 0; i < N; i = i+1) begin : VMs
 	wire ready_for_forwarder_local;
 	
 	assign forwarder_rd_addr_local = `FWD_LOCAL[FWD_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH];
-	assign forwarder_rd_data_local = `FWD_LOCAL[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH];
-	assign len_to_forwarder_local = `FWD_LOCAL[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH - `PACKET_DATA_WIDTH -: `PLEN_WIDTH];
+	assign `FWD_LOCAL[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH] = forwarder_rd_data_local;
+	assign `FWD_LOCAL[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH - `PACKET_DATA_WIDTH -: `PLEN_WIDTH] = len_to_forwarder_local;
 	assign forwarder_rd_en_local = `FWD_LOCAL[2];
 	assign forwarder_done_local = `FWD_LOCAL[1];
 	assign `FWD_LOCAL[0] = ready_for_forwarder_local;
@@ -221,8 +223,8 @@ for (i = 0; i < N-1; i = i+1) begin: fwdtree
 	wire ready_for_forwarder_local;
 	
 	assign forwarder_rd_addr_local = `LOCAL[FWD_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH];
-	assign forwarder_rd_data_local = `LOCAL[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH];
-	assign len_to_forwarder_local = `LOCAL[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH - `PACKET_DATA_WIDTH -: `PLEN_WIDTH];
+	assign `LOCAL[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH] = forwarder_rd_data_local;
+	assign `LOCAL[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH - `PACKET_DATA_WIDTH -: `PLEN_WIDTH] = len_to_forwarder_local;
 	assign forwarder_rd_en_local = `LOCAL[2];
 	assign forwarder_done_local = `LOCAL[1];
 	assign `LOCAL[0] = ready_for_forwarder_local;
@@ -234,12 +236,12 @@ for (i = 0; i < N-1; i = i+1) begin: fwdtree
 	wire forwarder_done_left; //NOTE: this must be a 1-cycle pulse.
 	wire ready_for_forwarder_left;
 	
-	assign forwarder_rd_addr_left = `LEFT[FWD_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH];
+	assign `LEFT[FWD_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH] = forwarder_rd_addr_left;
 	assign forwarder_rd_data_left = `LEFT[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH];
 	assign len_to_forwarder_left = `LEFT[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH - `PACKET_DATA_WIDTH -: `PLEN_WIDTH];
-	assign forwarder_rd_en_left = `LEFT[2];
-	assign forwarder_done_left = `LEFT[1];
-	assign `LEFT[0] = ready_for_forwarder_local;
+	assign `LEFT[2] = forwarder_rd_en_left;
+	assign `LEFT[1] = forwarder_done_left;
+	assign ready_for_forwarder_left = `LEFT[0];
 	
 	wire [SNOOP_FWD_ADDR_WIDTH-1:0] forwarder_rd_addr_right;
 	wire [`PACKET_DATA_WIDTH-1:0] forwarder_rd_data_right;
@@ -248,12 +250,12 @@ for (i = 0; i < N-1; i = i+1) begin: fwdtree
 	wire forwarder_done_right; //NOTE: this must be a 1-cycle pulse.
 	wire ready_for_forwarder_right;
 	
-	assign forwarder_rd_addr_right = `RIGHT[FWD_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH];
+	assign `RIGHT[FWD_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH] = forwarder_rd_addr_right;
 	assign forwarder_rd_data_right = `RIGHT[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH];
 	assign len_to_forwarder_right = `RIGHT[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH - `PACKET_DATA_WIDTH -: `PLEN_WIDTH];
-	assign forwarder_rd_en_right = `RIGHT[2];
-	assign forwarder_done_right = `RIGHT[1];
-	assign `RIGHT[0] = ready_for_forwarder_local;
+	assign `RIGHT[2] = forwarder_rd_en_right;
+	assign `RIGHT[1] = forwarder_done_right;
+	assign ready_for_forwarder_right = `RIGHT[0];
 
 	fwdcombine # (
 		.DATA_WIDTH(`PACKET_DATA_WIDTH),
@@ -289,12 +291,13 @@ end
 
 //This hooks up the module's forwarder interface input to the root of the forwarder tree
 `define FWDROOT fwdcomb_tree[N + (N-1) -1]
-assign forwarder_rd_addr = `FWDROOT[FWD_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH];
+assign `FWDROOT[FWD_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH] = forwarder_rd_addr;
 assign forwarder_rd_data = `FWDROOT[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH];
+//assign forwarder_rd_data = 'hDEB06;
 assign len_to_forwarder = `FWDROOT[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH - `PACKET_DATA_WIDTH -: `PLEN_WIDTH];
-assign forwarder_rd_en = `FWDROOT[2];
-assign forwarder_done = `FWDROOT[1];
-assign `FWDROOT[0] = ready_for_forwarder;
+assign `FWDROOT[2] = forwarder_rd_en;
+assign `FWDROOT[1] = forwarder_done;
+assign ready_for_forwarder = `FWDROOT[0];
 `undef FWDROOT
 
 endmodule

@@ -48,7 +48,7 @@ module snoopsplit # (parameter
 //Subtlety: we can only change our choice between packets. 
 //This occurs _one cycle after_ done is asserted, or if nothing was ready on the last cycle
 //ASSUMES: mem_ready never goes low intermittently inside of a single packet
-reg do_select = 0;
+reg do_select = 1;
 always @(posedge clk) do_select <= done || (!mem_ready_left && !mem_ready_right);
 
 reg choice_saved = 0; //Hold onto last choice in case we're not allowed to change choice

@@ -43,7 +43,7 @@ module snoopsplit # (parameter
 	//Output which branch we chose, which is later used to put packets back into
 	//the right order
 	output reg choice
-    );
+);
 
 initial choice <= 0; //Zero for left, 1 for right
 

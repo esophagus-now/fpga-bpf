@@ -42,13 +42,24 @@ module snoopsplit # (parameter
 	
 	//Output which branch we chose, which is later used to put packets back into
 	//the right order
-	output reg choice
+	output wire choice //Zero for left, 1 for right
 );
 
-initial choice <= 0; //Zero for left, 1 for right
+//Subtlety: we can only change our choice between packets. This occurs _one cycle after_ done is asserted
+reg done_delayed = 0;
+always @(posedge clk) done_delayed <= done;
 
-wire nextchoice;
-assign nextchoice = (mem_ready_left ? 0 : (mem_ready_right ? 1 : 0));
+reg choice_saved = 0; //Hold onto last choice in case we're not allowed to change choice
+//(that is, when done_delayed is false)
+
+assign choice = 
+	done_delayed ? 
+		(mem_ready_left ? 0 : (mem_ready_right ? 1 : 0))
+		:
+		choice_saved
+	;
+
+always @(posedge clk) choice_saved = choice;
 
 assign wr_addr_left = wr_addr;
 assign wr_addr_right = wr_addr;
@@ -61,9 +72,5 @@ assign wr_en_left = (choice == 0) ? wr_en : 0;
 assign wr_en_right = (choice == 1) ? wr_en : 0;
 assign done_left = (choice == 0) ? done : 0;
 assign done_right = (choice == 1) ? done : 0;
-
-always @(posedge clk) begin
-	if (done) choice <= nextchoice;
-end
 
 endmodule

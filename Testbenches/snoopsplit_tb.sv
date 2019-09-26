@@ -130,8 +130,9 @@ initial begin
 	done <= 0;
 	mem_ready_D <= 0;
 	
+	`SHORT_DELAY;
 	`LONG_DELAY;
-	mem_ready_B <= 1; //B should be immediately selected
+	mem_ready_C <= 1; //C should be immediately selected
 	
 	`LONG_DELAY;
 	$finish;

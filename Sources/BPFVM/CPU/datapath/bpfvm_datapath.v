@@ -18,7 +18,8 @@ This "datapath" is intended to be controlled by the FSM defined in bpfvm_ctrl.v
 module bpfvm_datapath # (parameter
 	CODE_ADDR_WIDTH = 10,
 	CODE_DATA_WIDTH = 64,
-	PACKET_BYTE_ADDR_WIDTH = 12
+	PACKET_BYTE_ADDR_WIDTH = 12,
+	PESSIMISTIC = 0
 )(
     input wire rst,
     input wire clk,
@@ -69,6 +70,8 @@ wire [31:0] scratch_odata;
 wire [31:0] scratch_idata;
 
 assign scratch_idata = (regfile_sel == 1'b1) ? X : A;
+
+wire [PACKET_BYTE_ADDR_WIDTH-1:0] packet_addr_internal;
 
 //Named constants for A register MUX
 `ifndef A_SEL_IMM
@@ -160,12 +163,32 @@ always @(PC_sel, PC, jt, jf, imm) begin
 end
 
 //packet_addr mux
-assign packet_addr = (addr_sel == 1'b0) ? imm : (X+imm);
+assign packet_addr_internal = (addr_sel == 1'b0) ? imm : (X+imm);
+////////////////////////////////////////
+////////// PESSIMISTIC MODE ////////////
+////////////////////////////////////////
+generate
+if (PESSIMISTIC) begin
+	reg [PACKET_BYTE_ADDR_WIDTH-1:0] packet_addr_r = 0;
+	always @(posedge clk) packet_addr_r <= packet_addr_internal;
+	assign packet_addr = packet_addr_r;
+end
+///////////////////////////////////////
+////////// OPTIMISTIC MODE ////////////
+///////////////////////////////////////
+else begin
+	assign packet_addr = packet_addr_internal;
+end
+endgenerate
+////////////////////////////////////////
 
 //ALU operand B select
 assign B = (B_sel == 1'b1) ? X : imm;
 
-alu myalu (
+alu # (
+	.PESSIMISTIC(PESSIMISTIC)
+) myalu (
+	.clk(clk),
     .A(A),
     .B(B),
     .ALU_sel(ALU_sel),

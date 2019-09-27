@@ -81,6 +81,7 @@ assign retval = opcode[4:3];
 //State encoding. Does Vivado automatically re-encode these for better performance?
 localparam 	fetch = 0, decode = 1, write_mem_to_A = 2, write_mem_to_X = 3,
 			write_ALU_to_A = 4, msh_write_mem_to_X = 5, cond_jmp_extra_state = 6,
+			ALU_extra_state = 7, LD_extra_state = 8, LDX_extra_state = 9,
 			reset = (2**`STATE_WIDTH-1); 
 
 reg [`STATE_WIDTH-1:0] state;
@@ -188,6 +189,9 @@ always @(*) begin
 	end
 end
 
+//PC_sel
+//PC_en
+
 ////////////////////////////////////////
 ////////// PESSIMISTIC MODE ////////////
 ////////////////////////////////////////
@@ -198,6 +202,9 @@ if (PESSIMISTIC) begin
 	//to the PC_sel lines.
 	//Of course, this meant adding an extra state to the controller when
 	//we perform conditional jumps (state 6)
+	
+	/*
+	//THIS REGISTER DELAY MOVED INTO ALU.V UNDER ITS OWN IF(PESSIMISTIC) GUARD
 	reg set_r, eq_r, gt_r, ge_r;
 	always @(posedge clk) begin
 		set_r <= set;
@@ -205,6 +212,7 @@ if (PESSIMISTIC) begin
 		gt_r <= gt;
 		ge_r <= ge;
 	end
+	*/
 	//PC_sel
 	always @(*) begin
 		if (state == fetch) begin
@@ -218,10 +226,10 @@ if (PESSIMISTIC) begin
 			end
 		end else if (state == cond_jmp_extra_state) begin
 			if (
-				(jmp_type == `BPF_JEQ && eq_r) ||
-				(jmp_type == `BPF_JGT && gt_r) ||
-				(jmp_type == `BPF_JGE && ge_r) ||
-				(jmp_type == `BPF_JSET && set_r)
+				(jmp_type == `BPF_JEQ && eq) ||
+				(jmp_type == `BPF_JGT && gt) ||
+				(jmp_type == `BPF_JGE && ge) ||
+				(jmp_type == `BPF_JSET && set)
 			) begin
 				PC_sel <= `PC_SEL_PLUS_JT;
 			end else begin
@@ -307,29 +315,52 @@ always @(*) begin
 end
 
 //packet_mem_rd_en
-always @(*) begin
-	if (state == decode) begin
-		if (opcode_class == `BPF_LD && (
-				addr_type == `BPF_ABS ||
-				addr_type == `BPF_IND
-			)
-		) begin
+////////////////////////////////////////
+////////// PESSIMISTIC MODE ////////////
+////////////////////////////////////////
+generate
+if (PESSIMISTIC) begin
+	//packet_mem_rd_en
+	always @(*) begin
+		if (state == LD_extra_state) begin
 			packet_mem_rd_en <= 1;
-		end else if (opcode_class == `BPF_LDX && (
-				addr_type == `BPF_ABS ||
-				addr_type == `BPF_IND ||
-				addr_type == `BPF_MSH
-			)
-		) begin
+		end else if (state == LDX_extra_state) begin
 			packet_mem_rd_en <= 1;
 		end else begin
 			packet_mem_rd_en <= 0;
 		end
-	end else begin
-		packet_mem_rd_en <= 0;
+	end
+end 
+///////////////////////////////////////
+////////// OPTIMISTIC MODE ////////////
+///////////////////////////////////////
+else begin
+	//packet_mem_rd_en
+	always @(*) begin
+		if (state == decode) begin
+			if (opcode_class == `BPF_LD && (
+					addr_type == `BPF_ABS ||
+					addr_type == `BPF_IND
+				)
+			) begin
+				packet_mem_rd_en <= 1;
+			end else if (opcode_class == `BPF_LDX && (
+					addr_type == `BPF_ABS ||
+					addr_type == `BPF_IND ||
+					addr_type == `BPF_MSH
+				)
+			) begin
+				packet_mem_rd_en <= 1;
+			end else begin
+				packet_mem_rd_en <= 0;
+			end
+		end else begin
+			packet_mem_rd_en <= 0;
+		end
 	end
 end
-
+endgenerate
+///////////////////////////////////////
 //inst_mem_rd_en
 assign inst_mem_rd_en = (state == fetch);
 
@@ -371,6 +402,7 @@ always @(*) begin
 	end
 end
 
+//next state
 ////////////////////////////////////////
 ////////// PESSIMISTIC MODE ////////////
 ////////////////////////////////////////
@@ -398,7 +430,7 @@ if (PESSIMISTIC) begin
 							(addr_type == `BPF_ABS) ||
 							(addr_type == `BPF_IND)
 						) begin
-							next_state <= write_mem_to_A;
+							next_state <= LD_extra_state;
 						end else begin
 							//This is an error
 							next_state <= reset;
@@ -414,9 +446,9 @@ if (PESSIMISTIC) begin
 							(addr_type == `BPF_ABS) ||
 							(addr_type == `BPF_IND)
 						) begin
-							next_state <= write_mem_to_X;
+							next_state <= LDX_extra_state;
 						end else if (addr_type == `BPF_MSH) begin
-							next_state <= msh_write_mem_to_X;
+							next_state <= LDX_extra_state;
 						end else begin
 							//This is an error
 							next_state <= reset;
@@ -431,13 +463,23 @@ if (PESSIMISTIC) begin
 							next_state <= cond_jmp_extra_state; //This was added to improve timing
 						end
 					end `BPF_ALU: begin
-						next_state <= write_ALU_to_A;
+						next_state <= ALU_extra_state;
 					end `BPF_RET: begin
 						next_state <= reset;
 					end default: begin
 						next_state <= reset; //ERROR!
 					end
 				endcase
+			end LD_extra_state: begin
+				next_state <= write_mem_to_A;
+			end LDX_extra_state: begin
+				if (addr_type == `BPF_MSH) begin
+					next_state <= msh_write_mem_to_X;
+				end else begin
+					next_state <= write_mem_to_X;
+				end
+			end ALU_extra_state: begin
+				next_state <= write_ALU_to_A;
 			end write_mem_to_A, write_ALU_to_A, write_mem_to_X, msh_write_mem_to_X, cond_jmp_extra_state: begin
 				next_state <= fetch;
 			end default: begin

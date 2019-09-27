@@ -92,7 +92,8 @@ bpfvm_ctrl # (
 
 bpfvm_datapath # (
 	.CODE_ADDR_WIDTH(CODE_ADDR_WIDTH),
-	.PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH)
+	.PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH),
+	.PESSIMISTIC(PESSIMISTIC)
 ) datapath (
 	.rst(rst),
 	.clk(clk),

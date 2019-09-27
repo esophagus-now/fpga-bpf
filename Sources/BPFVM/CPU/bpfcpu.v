@@ -14,7 +14,8 @@ Basically just connects bpfvm_ctrl.v and bpfvm_datapath.v together into one bloc
 module bpfcpu # (
     parameter CODE_ADDR_WIDTH = 10, // codemem depth = 2^CODE_ADDR_WIDTH
     parameter PACKET_BYTE_ADDR_WIDTH = 12, // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
-    parameter SNOOP_FWD_ADDR_WIDTH = 9
+    parameter SNOOP_FWD_ADDR_WIDTH = 9,
+	parameter PESSIMISTIC = 0
 )(
 	input wire rst,
 	input wire clk,
@@ -56,7 +57,9 @@ wire imm_is_zero; //Output from "ALU": imm == 0
 wire A_is_zero; //Output from "ALU": A == 0 
 wire X_is_zero; //Output from "ALU": X == 0 
 
-bpfvm_ctrl controller(	
+bpfvm_ctrl # (
+	.PESSIMISTIC(PESSIMISTIC)
+) controller (	
 	.rst(rst),
 	.clk(clk),
 	.A_sel(A_sel),

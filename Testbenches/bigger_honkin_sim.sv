@@ -17,6 +17,7 @@ correctly accepted/rejected, correctly forwarded out, and to get an idea on perf
 `define PACKET_BYTE_ADDR_WIDTH 12
 `define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 4)
 `define PACKET_DATA_WIDTH 128
+`define USE_PESSIMISTIC 1
 
 module bigger_honkin_sim();
 reg clk;
@@ -159,8 +160,9 @@ end
 packetfilt # (
     .CODE_ADDR_WIDTH(`CODE_ADDR_WIDTH), // codemem depth = 2^CODE_ADDR_WIDTH
     .PACKET_BYTE_ADDR_WIDTH(`PACKET_BYTE_ADDR_WIDTH), // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
-    .SNOOP_FWD_ADDR_WIDTH(`PACKET_ADDR_WIDTH)//,
-    //.N(5)
+    .SNOOP_FWD_ADDR_WIDTH(`PACKET_ADDR_WIDTH),
+    //.N(5),
+    .PESSIMISTIC(`USE_PESSIMISTIC)
 ) PF (
 	.rst(rst),
 	.axi_aclk(clk),

@@ -13,9 +13,10 @@ Wires up the BPF CPU core (bpfcpu.v) with instruction and packet memory.
 module bpfvm # (
     parameter CODE_ADDR_WIDTH = 10, // codemem depth = 2^CODE_ADDR_WIDTH
     parameter PACKET_BYTE_ADDR_WIDTH = 12, // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
-    parameter SNOOP_FWD_ADDR_WIDTH = 9
+    parameter SNOOP_FWD_ADDR_WIDTH = 9,
     //this makes the data width of the snooper and fwd equal to:
     // 2^{3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH}
+	parameter PESSIMISTIC = 0
 )(
 	input wire rst,
 	input wire clk,
@@ -58,7 +59,8 @@ wire [`PLEN_WIDTH-1:0] len_to_cpu; //TODO: fix this terrible packet length logic
 bpfcpu # (
 	.CODE_ADDR_WIDTH(CODE_ADDR_WIDTH),
 	.PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH),
-	.SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)
+	.SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH),
+	.PESSIMISTIC(PESSIMISTIC)
 ) theCPU (
 	.rst(rst),
 	.clk(clk),

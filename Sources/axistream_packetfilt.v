@@ -19,7 +19,9 @@ module axistream_packetfilt # (
     parameter SNOOP_FWD_ADDR_WIDTH = 9,
     //this makes the data width of the snooper and fwd equal to:
     // 2^{3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH}
-    parameter N = 5 //Number of parallel BPFVMs
+    parameter N = 5, //Number of parallel BPFVMs
+	parameter PESSIMISTIC = 0 //Turns on a few registers here and there to ease timing
+	//and will also add one cycle to most CPU instructions
 )(
 
     // Clock and Reset
@@ -102,7 +104,8 @@ parallel_packetfilts # (
     .CODE_ADDR_WIDTH(CODE_ADDR_WIDTH),
     .PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH),
     .SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH),
-    .N(N)
+    .N(N),
+	.PESSIMISTIC(PESSIMISTIC)
 ) theFilter (   
 	// Clock and Reset
 	.axi_aclk(axi_aclk),
@@ -196,7 +199,8 @@ regstrb2mem read_inst_regs (
 
 axistream_snooper # (
 	.DATA_WIDTH(`PACKET_DATA_WIDTH),
-	.ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)
+	.ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH),
+	.PESSIMISTIC(PESSIMISTIC)
 ) el_snoopo (
 	.clk(axi_aclk),
 	
@@ -216,7 +220,8 @@ axistream_snooper # (
 
 axistream_forwarder # (
 	.DATA_WIDTH(`PACKET_DATA_WIDTH),
-	.ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)
+	.ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH),
+	.PESSIMISTIC(PESSIMISTIC)
 ) forward_unto_dawn (
 	.clk(axi_aclk),
 	

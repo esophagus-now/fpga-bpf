@@ -16,9 +16,10 @@ configuration.
 module packetfilt # (
     parameter CODE_ADDR_WIDTH = 10, // codemem depth = 2^CODE_ADDR_WIDTH
     parameter PACKET_BYTE_ADDR_WIDTH = 12, // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
-    parameter SNOOP_FWD_ADDR_WIDTH = 9
+    parameter SNOOP_FWD_ADDR_WIDTH = 9,
     //this makes the data width of the snooper and fwd equal to:
     // 2^{3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH}
+	parameter PESSIMISTIC = 0
 )(
 
     // Clock and Reset
@@ -49,7 +50,8 @@ module packetfilt # (
 bpfvm # (
     .CODE_ADDR_WIDTH(CODE_ADDR_WIDTH), // codemem depth = 2^CODE_ADDR_WIDTH
     .PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH), // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
-    .SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)
+    .SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH),
+    .PESSIMISTIC(PESSIMISTIC)
 ) the_VM(
 	.rst(rst), //Reset should be high if resetn is LOW or if start is LOW 
 	.clk(axi_aclk),

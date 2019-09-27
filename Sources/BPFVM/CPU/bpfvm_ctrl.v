@@ -26,7 +26,9 @@ modified to match Verilog's syntax
 
 `define STATE_WIDTH 4 //This should be wide enough
 
-module bpfvm_ctrl(
+module bpfvm_ctrl # (
+	parameter PESSIMISTIC = 0
+)(
     input wire rst,
     input wire clk,
     output `logic [2:0] A_sel,
@@ -57,19 +59,6 @@ module bpfvm_ctrl(
     output reg reject
     );
 
-//I added these registered versions of the "ALU flags" in order to
-//improve timing. There was a long combinational path through the ALU
-//to the PC_sel lines.
-//Of course, this meant adding an extra state to the controller when
-//we perform conditional jumps (state 6)
-reg set_r, eq_r, gt_r, ge_r;
-always @(posedge clk) begin
-	set_r <= set;
-	eq_r <= eq;
-	gt_r <= gt;
-	ge_r <= ge;
-end
-
 //These are named subfields of the opcode
 wire [2:0] opcode_class;
 assign opcode_class = opcode[2:0];
@@ -90,7 +79,7 @@ wire [1:0] retval;
 assign retval = opcode[4:3];
 
 //State encoding. Does Vivado automatically re-encode these for better performance?
-parameter 	fetch = 0, decode = 1, write_mem_to_A = 2, write_mem_to_X = 3,
+localparam 	fetch = 0, decode = 1, write_mem_to_A = 2, write_mem_to_X = 3,
 			write_ALU_to_A = 4, msh_write_mem_to_X = 5, cond_jmp_extra_state = 6,
 			reset = (2**`STATE_WIDTH-1); 
 
@@ -199,45 +188,101 @@ always @(*) begin
 	end
 end
 
-//PC_en
-always @(*) begin
-	if (
-		state == fetch ||
-		(state == decode && opcode_class == `BPF_JMP && jmp_type == `BPF_JA) ||
-		state == cond_jmp_extra_state
-	) begin
-		PC_en <= 1;
-	end else begin
-		PC_en <= 0;
+////////////////////////////////////////
+////////// PESSIMISTIC MODE ////////////
+////////////////////////////////////////
+generate
+if (PESSIMISTIC) begin
+	//I added these registered versions of the "ALU flags" in order to
+	//improve timing. There was a long combinational path through the ALU
+	//to the PC_sel lines.
+	//Of course, this meant adding an extra state to the controller when
+	//we perform conditional jumps (state 6)
+	reg set_r, eq_r, gt_r, ge_r;
+	always @(posedge clk) begin
+		set_r <= set;
+		eq_r <= eq;
+		gt_r <= gt;
+		ge_r <= ge;
 	end
-end
-
-//PC_sel
-always @(*) begin
-	if (state == fetch) begin
-		PC_sel <= `PC_SEL_PLUS_1;
-	end else if (state == decode && opcode_class == `BPF_JMP) begin
-		if (jmp_type == `BPF_JA) begin
-			PC_sel <= `PC_SEL_PLUS_IMM;
-		end else begin
-			PC_sel <= 0; //don't care; PC_en is not 1 here
-			//But if you don't put it, you will get an inferred latch!
+	//PC_sel
+	always @(*) begin
+		if (state == fetch) begin
+			PC_sel <= `PC_SEL_PLUS_1;
+		end else if (state == decode && opcode_class == `BPF_JMP) begin
+			if (jmp_type == `BPF_JA) begin
+				PC_sel <= `PC_SEL_PLUS_IMM;
+			end else begin
+				PC_sel <= 0; //don't care; PC_en is not 1 here
+				//But if you don't put it, you will get an inferred latch!
+			end
+		end else if (state == cond_jmp_extra_state) begin
+			if (
+				(jmp_type == `BPF_JEQ && eq_r) ||
+				(jmp_type == `BPF_JGT && gt_r) ||
+				(jmp_type == `BPF_JGE && ge_r) ||
+				(jmp_type == `BPF_JSET && set_r)
+			) begin
+				PC_sel <= `PC_SEL_PLUS_JT;
+			end else begin
+				PC_sel <= `PC_SEL_PLUS_JF;
+			end
+		end else begin 
+			PC_sel <= 0;
 		end
-	end else if (state == cond_jmp_extra_state) begin
+	end
+	
+	//PC_en
+	always @(*) begin
 		if (
-			(jmp_type == `BPF_JEQ && eq_r) ||
-			(jmp_type == `BPF_JGT && gt_r) ||
-			(jmp_type == `BPF_JGE && ge_r) ||
-			(jmp_type == `BPF_JSET && set_r)
+			state == fetch ||
+			(state == decode && opcode_class == `BPF_JMP && jmp_type == `BPF_JA) ||
+			state == cond_jmp_extra_state
 		) begin
-			PC_sel <= `PC_SEL_PLUS_JT;
+			PC_en <= 1;
 		end else begin
-			PC_sel <= `PC_SEL_PLUS_JF;
+			PC_en <= 0;
 		end
-	end else begin 
-		PC_sel <= 0;
+	end
+end 
+///////////////////////////////////////
+////////// OPTIMISTIC MODE ////////////
+///////////////////////////////////////
+else begin
+	//PC_sel
+	always @(*) begin
+		if (state == fetch) begin
+			PC_sel <= `PC_SEL_PLUS_1;
+		end else if (state == decode && opcode_class == `BPF_JMP) begin
+			if (jmp_type == `BPF_JA) begin
+				PC_sel <= `PC_SEL_PLUS_IMM;
+			end else if (
+				(jmp_type == `BPF_JEQ && eq) ||
+				(jmp_type == `BPF_JGT && gt) ||
+				(jmp_type == `BPF_JGE && ge) ||
+				(jmp_type == `BPF_JSET && set)
+			) begin
+				PC_sel <= `PC_SEL_PLUS_JT;
+			end else begin
+				PC_sel <= `PC_SEL_PLUS_JF;
+			end
+		end else begin 
+			PC_sel <= 0;
+		end
+	end
+	//PC_en
+	always @(*) begin
+		if (state == fetch || (
+				state == decode && opcode_class == `BPF_JMP)
+		) begin
+			PC_en <= 1;
+		end else begin
+			PC_en <= 0;
+		end
 	end
 end
+endgenerate
+////////////////////////////////////////
 
 //PC_rst
 always @(*) begin
@@ -326,76 +371,151 @@ always @(*) begin
 	end
 end
 
-//next state
-
-always @(*) begin
-	case (state)
-		reset: begin
-			if (mem_ready && (!rst)) next_state <= fetch;
-			else next_state <= reset;
-		end fetch: begin
-			next_state <= decode; //Need to wait a cycle for memory read
-		end decode: begin
-			case (opcode_class)
-				`BPF_LD: begin 
-					//Check if we're using immediate, packet memory, scratch memory, or length
-					if (
-						(addr_type == `BPF_IMM) ||
-						(addr_type == `BPF_MEM) ||
-						(addr_type == `BPF_LEN) 
-					) begin
+////////////////////////////////////////
+////////// PESSIMISTIC MODE ////////////
+////////////////////////////////////////
+generate
+if (PESSIMISTIC) begin
+	//next state
+	always @(*) begin
+		case (state)
+			reset: begin
+				if (mem_ready && (!rst)) next_state <= fetch;
+				else next_state <= reset;
+			end fetch: begin
+				next_state <= decode; //Need to wait a cycle for memory read
+			end decode: begin
+				case (opcode_class)
+					`BPF_LD: begin 
+						//Check if we're using immediate, packet memory, scratch memory, or length
+						if (
+							(addr_type == `BPF_IMM) ||
+							(addr_type == `BPF_MEM) ||
+							(addr_type == `BPF_LEN) 
+						) begin
+							next_state <= fetch;
+						end else if (
+							(addr_type == `BPF_ABS) ||
+							(addr_type == `BPF_IND)
+						) begin
+							next_state <= write_mem_to_A;
+						end else begin
+							//This is an error
+							next_state <= reset;
+						end
+					end `BPF_LDX: begin
+						if (
+							(addr_type == `BPF_IMM) ||
+							(addr_type == `BPF_MEM) ||
+							(addr_type == `BPF_LEN) 
+						) begin
+							next_state <= fetch;
+						end else if (
+							(addr_type == `BPF_ABS) ||
+							(addr_type == `BPF_IND)
+						) begin
+							next_state <= write_mem_to_X;
+						end else if (addr_type == `BPF_MSH) begin
+							next_state <= msh_write_mem_to_X;
+						end else begin
+							//This is an error
+							next_state <= reset;
+						end
+						
+					end `BPF_ST, `BPF_STX, `BPF_MISC: begin 
 						next_state <= fetch;
-					end else if (
-						(addr_type == `BPF_ABS) ||
-						(addr_type == `BPF_IND)
-					) begin
-						next_state <= write_mem_to_A;
-					end else begin
-						//This is an error
+					end `BPF_JMP: begin
+						if (jmp_type == `BPF_JA) begin
+							next_state <= fetch;
+						end else begin
+							next_state <= cond_jmp_extra_state; //This was added to improve timing
+						end
+					end `BPF_ALU: begin
+						next_state <= write_ALU_to_A;
+					end `BPF_RET: begin
 						next_state <= reset;
+					end default: begin
+						next_state <= reset; //ERROR!
 					end
-				end `BPF_LDX: begin
-					if (
-						(addr_type == `BPF_IMM) ||
-						(addr_type == `BPF_MEM) ||
-						(addr_type == `BPF_LEN) 
-					) begin
+				endcase
+			end write_mem_to_A, write_ALU_to_A, write_mem_to_X, msh_write_mem_to_X, cond_jmp_extra_state: begin
+				next_state <= fetch;
+			end default: begin
+				//ERROR
+				next_state <= reset;
+			end
+		endcase
+	end   
+end 
+///////////////////////////////////////
+////////// OPTIMISTIC MODE ////////////
+///////////////////////////////////////
+else begin
+	//next state
+	always @(*) begin
+		case (state)
+			reset: begin
+				if (mem_ready && (!rst)) next_state <= fetch;
+				else next_state <= reset;
+			end fetch: begin
+				next_state <= decode; //Need to wait a cycle for memory read
+			end decode: begin
+				case (opcode_class)
+					`BPF_LD: begin 
+						//Check if we're using immediate, packet memory, scratch memory, or length
+						if (
+							(addr_type == `BPF_IMM) ||
+							(addr_type == `BPF_MEM) ||
+							(addr_type == `BPF_LEN) 
+						) begin
+							next_state <= fetch;
+						end else if (
+							(addr_type == `BPF_ABS) ||
+							(addr_type == `BPF_IND)
+						) begin
+							next_state <= write_mem_to_A;
+						end else begin
+							//This is an error
+							next_state <= reset;
+						end
+					end `BPF_LDX: begin
+						if (
+							(addr_type == `BPF_IMM) ||
+							(addr_type == `BPF_MEM) ||
+							(addr_type == `BPF_LEN) 
+						) begin
+							next_state <= fetch;
+						end else if (
+							(addr_type == `BPF_ABS) ||
+							(addr_type == `BPF_IND)
+						) begin
+							next_state <= write_mem_to_X;
+						end else if (addr_type == `BPF_MSH) begin
+							next_state <= msh_write_mem_to_X;
+						end else begin
+							//This is an error
+							next_state <= reset;
+						end
+						
+					end `BPF_ST, `BPF_STX, `BPF_JMP, `BPF_MISC: begin 
 						next_state <= fetch;
-					end else if (
-						(addr_type == `BPF_ABS) ||
-						(addr_type == `BPF_IND)
-					) begin
-						next_state <= write_mem_to_X;
-					end else if (addr_type == `BPF_MSH) begin
-						next_state <= msh_write_mem_to_X;
-					end else begin
-						//This is an error
+					end `BPF_ALU: begin
+						next_state <= write_ALU_to_A;
+					end `BPF_RET: begin
 						next_state <= reset;
+					end default: begin
+						next_state <= reset; //ERROR!
 					end
-					
-				end `BPF_ST, `BPF_STX, `BPF_MISC: begin 
-					next_state <= fetch;
-				end `BPF_JMP: begin
-					if (jmp_type == `BPF_JA) begin
-						next_state <= fetch;
-					end else begin
-						next_state <= cond_jmp_extra_state; //This was added to improve timing
-					end
-				end `BPF_ALU: begin
-					next_state <= write_ALU_to_A;
-				end `BPF_RET: begin
-					next_state <= reset;
-				end default: begin
-					next_state <= reset; //ERROR!
-				end
-			endcase
-		end write_mem_to_A, write_ALU_to_A, write_mem_to_X, msh_write_mem_to_X, cond_jmp_extra_state: begin
-			next_state <= fetch;
-		end default: begin
-			//ERROR
-			next_state <= reset;
-		end
-	endcase
-end    
-
+				endcase
+			end write_mem_to_A, write_ALU_to_A, write_mem_to_X, msh_write_mem_to_X: begin
+				next_state <= fetch;
+			end default: begin
+				//ERROR
+				next_state <= reset;
+			end
+		endcase
+	end 
+end
+endgenerate
+///////////////////////////////////////
 endmodule

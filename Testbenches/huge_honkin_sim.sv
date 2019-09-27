@@ -19,6 +19,7 @@ correctly accepted/rejected, correctly forwarded out, and to get an idea on perf
 `define PACKET_BYTE_ADDR_WIDTH 12
 `define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 4)
 `define PACKET_DATA_WIDTH 128
+`define USE_PESSIMISTIC 0
 
 module huge_honkin_sim();
 reg clk;
@@ -215,7 +216,8 @@ parallel_packetfilts # (
     .CODE_ADDR_WIDTH(`CODE_ADDR_WIDTH), // codemem depth = 2^CODE_ADDR_WIDTH
     .PACKET_BYTE_ADDR_WIDTH(`PACKET_BYTE_ADDR_WIDTH), // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
     .SNOOP_FWD_ADDR_WIDTH(`PACKET_ADDR_WIDTH),
-    .N(8)
+    .N(8),
+    .PESSIMISTIC(`USE_PESSIMISTIC)
 ) PF (
 	.rst(rst),
 	.axi_aclk(clk),
@@ -268,7 +270,8 @@ parallel_packetfilts # (
 // (Take on me, A-HA)
 axistream_snooper # (
 	.DATA_WIDTH(`PACKET_DATA_WIDTH),
-	.ADDR_WIDTH(`PACKET_ADDR_WIDTH)
+	.ADDR_WIDTH(`PACKET_ADDR_WIDTH),
+    .PESSIMISTIC(`USE_PESSIMISTIC)
 ) el_snoopo (
 	.clk(clk),
 	.TDATA(snoop_tdata),
@@ -286,7 +289,8 @@ axistream_snooper # (
 
 axistream_forwarder # (
 	.DATA_WIDTH(`PACKET_DATA_WIDTH),
-	.ADDR_WIDTH(`PACKET_ADDR_WIDTH)
+	.ADDR_WIDTH(`PACKET_ADDR_WIDTH),
+    .PESSIMISTIC(`USE_PESSIMISTIC)
 ) forward_unto_dawn(
 	.clk(clk),
 	

@@ -151,16 +151,16 @@ end
 
 always @(posedge clk) begin
 	if (snooper_done) packets_left++;
-	if (PF.VMs[0].the_VM.cpu_rej) packets_left--;
+	if (PF.the_VM.cpu_rej) packets_left--;
 	if (forwarder_done) packets_left--;
 	if (packets_left == 0 && $feof(fd)) ->done_processing;
 end
 
-parallel_packetfilts # (
+packetfilt # (
     .CODE_ADDR_WIDTH(`CODE_ADDR_WIDTH), // codemem depth = 2^CODE_ADDR_WIDTH
     .PACKET_BYTE_ADDR_WIDTH(`PACKET_BYTE_ADDR_WIDTH), // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
-    .SNOOP_FWD_ADDR_WIDTH(`PACKET_ADDR_WIDTH),
-    .N(5)
+    .SNOOP_FWD_ADDR_WIDTH(`PACKET_ADDR_WIDTH)//,
+    //.N(5)
 ) PF (
 	.rst(rst),
 	.axi_aclk(clk),

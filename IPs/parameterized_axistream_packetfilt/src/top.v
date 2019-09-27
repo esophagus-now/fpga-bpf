@@ -68,7 +68,9 @@ axistream_packetfilt # (
 	.AXI_ADDR_WIDTH(`AXI_ADDR_WIDTH), // width of the AXI address bus
 	.CODE_ADDR_WIDTH(`CODE_ADDR_WIDTH), // codemem depth = 2^CODE_ADDR_WIDTH
 	.PACKET_BYTE_ADDR_WIDTH(`PACKET_BYTE_ADDR_WIDTH), // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
-	.SNOOP_FWD_ADDR_WIDTH(`SNOOP_FWD_ADDR_WIDTH)
+	.SNOOP_FWD_ADDR_WIDTH(`SNOOP_FWD_ADDR_WIDTH),
+	.N(1),
+	.PESSIMISTIC(1)
 ) DUT (
 
     // Clock and Reset

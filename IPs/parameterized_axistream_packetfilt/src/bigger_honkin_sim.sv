@@ -1,11 +1,9 @@
 `timescale 1ns / 1ps
 /*
-huge_honkin_sim.sv
+bigger_honkin_sim.sv
 
-This is the same thing as bigger_honkin_sim, but actively tries to push the splitting/combining
-logic in order to test it properly. The technique here is to artificially slow down the CPU
-by adding a bunch of "no ops", and basically copying and pasting the test data a couple times
-extra.
+This is the same thing as big_honkin_sim, but tests if 128-bit wide snooping and forwarding
+work properly, and instantiates the parallel packet filter
 
 This testbenche's purpose is to wire up a snooper and forwarder into the BPFVM, and generate
 some fake data for the snooper to look at. The general idea is to see that packets are 
@@ -19,8 +17,9 @@ correctly accepted/rejected, correctly forwarded out, and to get an idea on perf
 `define PACKET_BYTE_ADDR_WIDTH 12
 `define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 4)
 `define PACKET_DATA_WIDTH 128
+`define USE_PESSIMISTIC 1
 
-module huge_honkin_sim();
+module bigger_honkin_sim();
 reg clk;
 reg rst;
 
@@ -77,60 +76,7 @@ initial forever begin
 	
 	code_mem_wr_addr = 0;
 	
-	//Artifically slow down CPU with a bunch of useless extra instructions
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]   
-	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]                            
+	codewr({8'h0, `BPF_ABS, `BPF_H, `BPF_LD, 8'h88, 8'h88, 32'd12}); //ldh [12]                         
 	codewr({8'b0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd13, 32'h800}); //jeq #0x800 jt 2 jf 15    
 	codewr({8'h0, `BPF_ABS, `BPF_B, `BPF_LD, 8'h88, 8'h88, 32'd23}); //ldb [23]                         
 	codewr({8'h0, `BPF_JEQ, `BPF_COMP_IMM, `BPF_JMP, 8'd0, 8'd11, 32'h0006}); //jeq #0x6 jt 4 jf 15     
@@ -172,7 +118,7 @@ initial begin
 	TREADY <= 1;
 	
 	//Read in the drivers
-	fd = $fopen("huge_honkin_test_data.mem", "r");
+	fd = $fopen("bigger_honkin_test_data.mem", "r"); //TODO: fill this file
 	while($fgetc(fd) != "\n") begin end //Skip first line of comments
 	
 	//Wait a few clock cycles before de-asserting rst
@@ -206,16 +152,17 @@ end
 
 always @(posedge clk) begin
 	if (snooper_done) packets_left++;
-	if (PF.VMs[0].the_VM.cpu_rej) packets_left--;
+	if (PF.the_VM.cpu_rej) packets_left--;
 	if (forwarder_done) packets_left--;
 	if (packets_left == 0 && $feof(fd)) ->done_processing;
 end
 
-parallel_packetfilts # (
+packetfilt # (
     .CODE_ADDR_WIDTH(`CODE_ADDR_WIDTH), // codemem depth = 2^CODE_ADDR_WIDTH
     .PACKET_BYTE_ADDR_WIDTH(`PACKET_BYTE_ADDR_WIDTH), // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
     .SNOOP_FWD_ADDR_WIDTH(`PACKET_ADDR_WIDTH),
-    .N(8)
+    //.N(5),
+    .PESSIMISTIC(`USE_PESSIMISTIC)
 ) PF (
 	.rst(rst),
 	.axi_aclk(clk),

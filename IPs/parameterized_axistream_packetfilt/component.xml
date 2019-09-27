@@ -86,7 +86,7 @@
       </spirit:portMaps>
     </spirit:busInterface>
     <spirit:busInterface>
-      <spirit:name>s_axi_packetfilt_ctl</spirit:name>
+      <spirit:name>s_axi_packfilt_ctl</spirit:name>
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm" spirit:version="1.0"/>
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm_rtl" spirit:version="1.0"/>
       <spirit:slave>
@@ -287,7 +287,7 @@
       <spirit:parameters>
         <spirit:parameter>
           <spirit:name>ASSOCIATED_BUSIF</spirit:name>
-          <spirit:value spirit:id="BUSIFPARAM_VALUE.AXI_ACLK.ASSOCIATED_BUSIF">snoop:fwd:s_axi_packetfilt_ctl</spirit:value>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AXI_ACLK.ASSOCIATED_BUSIF">s_axi_packfilt_ctl:snoop:fwd</spirit:value>
         </spirit:parameter>
         <spirit:parameter>
           <spirit:name>ASSOCIATED_RESET</spirit:name>
@@ -299,7 +299,7 @@
   <spirit:memoryMaps>
     <spirit:memoryMap>
       <spirit:name>s_axi</spirit:name>
-      <spirit:displayName>s_axi_packetfilt_ctl</spirit:displayName>
+      <spirit:displayName>Packet Filter Control</spirit:displayName>
       <spirit:addressBlock>
         <spirit:name>reg0</spirit:name>
         <spirit:baseAddress spirit:format="bitString" spirit:resolve="user" spirit:bitStringLength="32">0</spirit:baseAddress>
@@ -323,7 +323,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>363b1c19</spirit:value>
+            <spirit:value>c9f5f046</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -339,7 +339,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>363b1c19</spirit:value>
+            <spirit:value>e4e6e207</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -354,7 +354,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>b7110093</spirit:value>
+            <spirit:value>a5114003</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -368,7 +368,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>0bc11ab7</spirit:value>
+            <spirit:value>f4b9098e</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -870,7 +870,12 @@
       <spirit:modelParameter spirit:dataType="integer">
         <spirit:name>N</spirit:name>
         <spirit:displayName>N</spirit:displayName>
-        <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.N">5</spirit:value>
+        <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.N">4</spirit:value>
+      </spirit:modelParameter>
+      <spirit:modelParameter spirit:dataType="integer">
+        <spirit:name>PESSIMISTIC</spirit:name>
+        <spirit:displayName>Pessimistic</spirit:displayName>
+        <spirit:value spirit:format="bool" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.PESSIMISTIC">true</spirit:value>
       </spirit:modelParameter>
     </spirit:modelParameters>
   </spirit:model>
@@ -1033,7 +1038,7 @@
       <spirit:file>
         <spirit:name>src/parallel_packetfilts.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_5dd6eb45</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_4a2c1e5c</spirit:userFileType>
         <spirit:userFileType>IMPORTED_FILE</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -1304,7 +1309,7 @@
       <spirit:file>
         <spirit:name>xgui/parameterized_axistream_packetfilt_v1_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_0bc11ab7</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_f4b9098e</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -1313,17 +1318,17 @@
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>AXI_ADDR_WIDTH</spirit:name>
-      <spirit:displayName>AXI Control bus address width</spirit:displayName>
+      <spirit:displayName>AXI Lite address width</spirit:displayName>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.AXI_ADDR_WIDTH">32</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>BASEADDR</spirit:name>
-      <spirit:displayName>Base Address</spirit:displayName>
+      <spirit:displayName>AXI Lite Base Address</spirit:displayName>
       <spirit:value spirit:format="bitString" spirit:resolve="user" spirit:id="PARAM_VALUE.BASEADDR" spirit:bitStringLength="32">0x00000000</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>CODE_ADDR_WIDTH</spirit:name>
-      <spirit:displayName>Width of instruction memory</spirit:displayName>
+      <spirit:displayName>Code address width</spirit:displayName>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.CODE_ADDR_WIDTH">10</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
@@ -1333,13 +1338,18 @@
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>SNOOP_FWD_ADDR_WIDTH</spirit:name>
-      <spirit:displayName>Snooper/Forwarder address width</spirit:displayName>
+      <spirit:displayName>Snooper and Forwarder address width</spirit:displayName>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.SNOOP_FWD_ADDR_WIDTH">9</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>N</spirit:name>
       <spirit:displayName>Number of parallel filters</spirit:displayName>
-      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.N">5</spirit:value>
+      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.N">4</spirit:value>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>PESSIMISTIC</spirit:name>
+      <spirit:displayName>Enable extra internal registers</spirit:displayName>
+      <spirit:value spirit:format="bool" spirit:resolve="user" spirit:id="PARAM_VALUE.PESSIMISTIC">true</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>Component_Name</spirit:name>
@@ -1382,43 +1392,42 @@
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>user.org:user:axistream_packetfilt:1.0</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2019-09-26T22:27:33Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2019-09-27T20:13:02Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@2e80cd47_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@36203b53_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@7e7674df_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@5b27c7b1_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@43196e89_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@3ec8b8b_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@262186ea_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@26ffc2d8_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@57efc00a_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@2c2ca3c4_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@3b31a9c2_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@209707ce_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@d04ecd7_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@6f0c085f_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@6c796e3_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@59da7b5c_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@660ddb50_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@762f9641_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@4a50fe01_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@270c16e2_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@4a0b0b53_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@fb4a926_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@4fad32fc_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@522a27f0_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@2a029539_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/paramaterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1a21f6fe_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5c6f2688_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2dc61313_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5f817eeb_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4e103192_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@742fd5e0_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@79f70a4a_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@b69b8d8_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2cf7a819_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3e85514d_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3b6a0d1_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@72d70fb5_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@13f7086e_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5cbd9c34_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@346a8ed0_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@11e04d43_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@70de16e1_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@435664ce_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@23c993b3_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2ee02694_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@fac0674_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@530b4882_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7bc178b3_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6e02c167_ARCHIVE_LOCATION">/home/mahkoe/research/bpfvm/fpga-bpf/IPs/parameterized_axistream_packetfilt</xilinx:tag>
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2018.3</xilinx:xilinxVersion>
-      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="fbf3c887"/>
-      <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="e75f7ded"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="3ae82869"/>
+      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="a1f796bf"/>
+      <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="c7e6ee49"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="a5754a1b"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="53faffca"/>
-      <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="af7b3fc7"/>
-      <xilinx:checksum xilinx:scope="parameters" xilinx:value="d01ba650"/>
+      <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="fbec266d"/>
+      <xilinx:checksum xilinx:scope="parameters" xilinx:value="ae7aab3a"/>
     </xilinx:packagingInfo>
   </spirit:vendorExtensions>
 </spirit:component>

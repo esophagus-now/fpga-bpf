@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="1400000001fs"></ZoomEndTime>
-      <Cursor1Time time="1400000000fs"></Cursor1Time>
+      <ZoomStartTime time="729959481fs"></ZoomStartTime>
+      <ZoomEndTime time="829319714fs"></ZoomEndTime>
+      <Cursor1Time time="755000000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="238"></NameColumnWidth>
-      <ValueColumnWidth column_width="78"></ValueColumnWidth>
+      <ValueColumnWidth column_width="74"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="41" />
+   <WVObjectSize size="45" />
    <wvobject type="logic" fp_name="/bigger_honkin_sim/clk">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -125,62 +125,78 @@
       <obj_property name="ObjectShortName">packets_left[31:0]</obj_property>
    </wvobject>
    <wvobject fp_name="divider89" type="divider">
-      <obj_property name="label">Forwarder</obj_property>
+      <obj_property name="label">CPU internals</obj_property>
       <obj_property name="DisplayName">label</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/bigger_honkin_sim/forward_unto_dawn/forwarder_rd_addr">
-      <obj_property name="ElementShortName">forwarder_rd_addr[7:0]</obj_property>
-      <obj_property name="ObjectShortName">forwarder_rd_addr[7:0]</obj_property>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/the_VM/theCPU/packet_addr">
+      <obj_property name="ElementShortName">packet_addr[11:0]</obj_property>
+      <obj_property name="ObjectShortName">packet_addr[11:0]</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/bigger_honkin_sim/forward_unto_dawn/forwarder_rd_data">
-      <obj_property name="ElementShortName">forwarder_rd_data[127:0]</obj_property>
-      <obj_property name="ObjectShortName">forwarder_rd_data[127:0]</obj_property>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/PF/the_VM/theCPU/packet_mem_rd_en">
+      <obj_property name="ElementShortName">packet_mem_rd_en</obj_property>
+      <obj_property name="ObjectShortName">packet_mem_rd_en</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/bigger_honkin_sim/forward_unto_dawn/forwarder_rd_en">
-      <obj_property name="ElementShortName">forwarder_rd_en</obj_property>
-      <obj_property name="ObjectShortName">forwarder_rd_en</obj_property>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/the_VM/theCPU/packet_data">
+      <obj_property name="ElementShortName">packet_data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">packet_data[31:0]</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/bigger_honkin_sim/forward_unto_dawn/len_to_forwarder">
-      <obj_property name="ElementShortName">len_to_forwarder[8:0]</obj_property>
-      <obj_property name="ObjectShortName">len_to_forwarder[8:0]</obj_property>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/the_VM/theCPU/inst_rd_addr">
+      <obj_property name="ElementShortName">inst_rd_addr[9:0]</obj_property>
+      <obj_property name="ObjectShortName">inst_rd_addr[9:0]</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/bigger_honkin_sim/forward_unto_dawn/ready_for_forwarder">
-      <obj_property name="ElementShortName">ready_for_forwarder</obj_property>
-      <obj_property name="ObjectShortName">ready_for_forwarder</obj_property>
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/PF/the_VM/theCPU/inst_mem_rd_en">
+      <obj_property name="ElementShortName">inst_mem_rd_en</obj_property>
+      <obj_property name="ObjectShortName">inst_mem_rd_en</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/bigger_honkin_sim/forward_unto_dawn/forwarder_done">
-      <obj_property name="ElementShortName">forwarder_done</obj_property>
-      <obj_property name="ObjectShortName">forwarder_done</obj_property>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/the_VM/theCPU/inst_mem_data">
+      <obj_property name="ElementShortName">inst_mem_data[63:0]</obj_property>
+      <obj_property name="ObjectShortName">inst_mem_data[63:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/the_VM/theCPU/controller/opcode_class">
+      <obj_property name="ElementShortName">opcode_class[2:0]</obj_property>
+      <obj_property name="ObjectShortName">opcode_class[2:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/the_VM/theCPU/controller/addr_type">
+      <obj_property name="ElementShortName">addr_type[2:0]</obj_property>
+      <obj_property name="ObjectShortName">addr_type[2:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/the_VM/theCPU/controller/jmp_type">
+      <obj_property name="ElementShortName">jmp_type[2:0]</obj_property>
+      <obj_property name="ObjectShortName">jmp_type[2:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/the_VM/theCPU/controller/state">
+      <obj_property name="ElementShortName">state[3:0]</obj_property>
+      <obj_property name="ObjectShortName">state[3:0]</obj_property>
    </wvobject>
    <wvobject fp_name="divider114" type="divider">
       <obj_property name="label">P3Ctrl</obj_property>
       <obj_property name="DisplayName">label</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/bigger_honkin_sim/PF/\VMs[2].the_VM /packmem/dispatcher/A_done">
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/PF/the_VM/packmem/dispatcher/A_done">
       <obj_property name="ElementShortName">A_done</obj_property>
       <obj_property name="ObjectShortName">A_done</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/bigger_honkin_sim/PF/\VMs[2].the_VM /packmem/dispatcher/B_acc">
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/PF/the_VM/packmem/dispatcher/B_acc">
       <obj_property name="ElementShortName">B_acc</obj_property>
       <obj_property name="ObjectShortName">B_acc</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/bigger_honkin_sim/PF/\VMs[2].the_VM /packmem/dispatcher/B_rej">
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/PF/the_VM/packmem/dispatcher/B_rej">
       <obj_property name="ElementShortName">B_rej</obj_property>
       <obj_property name="ObjectShortName">B_rej</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/bigger_honkin_sim/PF/\VMs[2].the_VM /packmem/dispatcher/C_done">
+   <wvobject type="logic" fp_name="/bigger_honkin_sim/PF/the_VM/packmem/dispatcher/C_done">
       <obj_property name="ElementShortName">C_done</obj_property>
       <obj_property name="ObjectShortName">C_done</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/\VMs[2].the_VM /packmem/dispatcher/sn_sel">
+   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/the_VM/packmem/dispatcher/sn_sel">
       <obj_property name="ElementShortName">sn_sel[1:0]</obj_property>
       <obj_property name="ObjectShortName">sn_sel[1:0]</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/\VMs[2].the_VM /packmem/dispatcher/cpu_sel">
+   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/the_VM/packmem/dispatcher/cpu_sel">
       <obj_property name="ElementShortName">cpu_sel[1:0]</obj_property>
       <obj_property name="ObjectShortName">cpu_sel[1:0]</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/\VMs[2].the_VM /packmem/dispatcher/fwd_sel">
+   <wvobject type="array" fp_name="/bigger_honkin_sim/PF/the_VM/packmem/dispatcher/fwd_sel">
       <obj_property name="ElementShortName">fwd_sel[1:0]</obj_property>
       <obj_property name="ObjectShortName">fwd_sel[1:0]</obj_property>
    </wvobject>

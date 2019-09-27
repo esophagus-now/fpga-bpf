@@ -14,7 +14,8 @@ Basically just connects bpfvm_ctrl.v and bpfvm_datapath.v together into one bloc
 module bpfcpu # (
     parameter CODE_ADDR_WIDTH = 10, // codemem depth = 2^CODE_ADDR_WIDTH
     parameter PACKET_BYTE_ADDR_WIDTH = 12, // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
-    parameter SNOOP_FWD_ADDR_WIDTH = 9
+    parameter SNOOP_FWD_ADDR_WIDTH = 9,
+	parameter PESSIMISTIC = 0
 )(
 	input wire rst,
 	input wire clk,
@@ -52,11 +53,13 @@ wire set; //Output from ALU: A & B != 0
 wire eq; //Output from ALU: A == B
 wire gt; //Output from ALU: A > B
 wire ge; //Output from ALU: A >= B
-wire imm_is_zero; //Output from "ALU": imm == 0 
+wire imm_lsb_is_zero; //Output from "ALU": imm[0] == 0 
 wire A_is_zero; //Output from "ALU": A == 0 
 wire X_is_zero; //Output from "ALU": X == 0 
 
-bpfvm_ctrl controller(	
+bpfvm_ctrl # (
+	.PESSIMISTIC(PESSIMISTIC)
+) controller (	
 	.rst(rst),
 	.clk(clk),
 	.A_sel(A_sel),
@@ -81,7 +84,7 @@ bpfvm_ctrl controller(
 	.transfer_sz(transfer_sz),
 	.mem_ready(mem_ready),
 	.A_is_zero(A_is_zero),
-	.imm_is_zero(imm_is_zero),
+	.imm_lsb_is_zero(imm_lsb_is_zero),
 	.X_is_zero(X_is_zero),
 	.accept(cpu_acc),
 	.reject(cpu_rej)
@@ -89,7 +92,8 @@ bpfvm_ctrl controller(
 
 bpfvm_datapath # (
 	.CODE_ADDR_WIDTH(CODE_ADDR_WIDTH),
-	.PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH)
+	.PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH),
+	.PESSIMISTIC(PESSIMISTIC)
 ) datapath (
 	.rst(rst),
 	.clk(clk),
@@ -115,7 +119,7 @@ bpfvm_datapath # (
 	.ge(ge),
 	.packet_addr(packet_addr),
 	.PC(inst_rd_addr),
-	.imm_is_zero(imm_is_zero),
+	.imm_lsb_is_zero(imm_lsb_is_zero),
 	.X_is_zero(X_is_zero),
 	.A_is_zero(A_is_zero)
 );

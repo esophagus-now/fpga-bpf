@@ -53,7 +53,7 @@ wire set; //Output from ALU: A & B != 0
 wire eq; //Output from ALU: A == B
 wire gt; //Output from ALU: A > B
 wire ge; //Output from ALU: A >= B
-wire imm_is_zero; //Output from "ALU": imm == 0 
+wire imm_lsb_is_zero; //Output from "ALU": imm[0] == 0 
 wire A_is_zero; //Output from "ALU": A == 0 
 wire X_is_zero; //Output from "ALU": X == 0 
 
@@ -84,7 +84,7 @@ bpfvm_ctrl # (
 	.transfer_sz(transfer_sz),
 	.mem_ready(mem_ready),
 	.A_is_zero(A_is_zero),
-	.imm_is_zero(imm_is_zero),
+	.imm_lsb_is_zero(imm_lsb_is_zero),
 	.X_is_zero(X_is_zero),
 	.accept(cpu_acc),
 	.reject(cpu_rej)
@@ -119,7 +119,7 @@ bpfvm_datapath # (
 	.ge(ge),
 	.packet_addr(packet_addr),
 	.PC(inst_rd_addr),
-	.imm_is_zero(imm_is_zero),
+	.imm_lsb_is_zero(imm_lsb_is_zero),
 	.X_is_zero(X_is_zero),
 	.A_is_zero(A_is_zero)
 );

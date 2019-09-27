@@ -87,9 +87,9 @@ if (PESSIMISTIC) begin
 	reg eq_r, gt_r, ge_r, set_r;
 	always @(posedge clk) begin
 		eq_r <= eq_internal;
-		gt_r <= eq_internal;
-		ge_r <= eq_internal;
-		set_r <= eq_internal;
+		gt_r <= gt_internal;
+		ge_r <= ge_internal;
+		set_r <= set_internal;
 	end
 	assign eq = eq_r;
 	assign gt = gt_r;

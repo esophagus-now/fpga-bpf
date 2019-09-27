@@ -47,7 +47,7 @@ module bpfvm_datapath # (parameter
     output reg [CODE_ADDR_WIDTH-1:0] PC = 0,
     output wire A_is_zero,
     output wire X_is_zero,
-    output wire imm_is_zero
+    output wire imm_lsb_is_zero
 );
 
 reg [31:0] A, X; //A is the accumulator, X is the auxiliary register
@@ -210,6 +210,7 @@ regfile scratchmem (
 
 assign A_is_zero = (A == 0);
 assign X_is_zero = (X == 0);
-assign imm_is_zero = (imm == 0);
+assign imm_lsb_is_zero = ~imm[0]; //Very quick-n-dirty hack to get rid of
+//maybe one or two LUTs in a failing combinational path
 
 endmodule

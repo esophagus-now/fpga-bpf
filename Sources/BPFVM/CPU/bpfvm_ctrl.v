@@ -54,7 +54,7 @@ module bpfvm_ctrl # (
     input wire mem_ready, //Signal from packetmem.v; tells CPU when to start
     input wire A_is_zero,
     input wire X_is_zero,
-    input wire imm_is_zero,
+    input wire imm_lsb_is_zero,
     output reg accept,
     output reg reject
     );
@@ -368,7 +368,7 @@ assign inst_mem_rd_en = (state == fetch);
 always @(*) begin
 	if (state == decode && opcode_class == `BPF_RET) begin
 		if (
-			(retval == `RET_IMM && !imm_is_zero) ||
+			(retval == `RET_IMM && !imm_lsb_is_zero) ||
 			(retval == `RET_X && !X_is_zero) ||
 			(retval == `RET_A && !A_is_zero)
 		) begin

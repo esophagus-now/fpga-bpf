@@ -33,6 +33,15 @@ module axistream_forwarder # (parameter
 	input wire [`PLEN_WIDTH-1:0] len_to_forwarder
 );
 
+//Did this to improve timing
+//Basically, rd_en was combinationally dependent on ready_for_forwarder, which
+//was making these long combinational paths.
+//There's also a hack here: since ready is delayed, we always need to wait an
+//extra cycle after we assert the done signal (for the ready register to "refill")
+//So, if done is 1, we can just force this value to be zero.
+reg ready_for_forwarder_r;
+always @(posedge clk) ready_for_forwarder_r <= ready_for_forwarder && !forwarder_done;
+
 //Calculate max addr
 wire [ADDR_WIDTH-1:0] maxaddr;
 assign maxaddr = len_to_forwarder[`PLEN_WIDTH-1 -: ADDR_WIDTH];
@@ -44,7 +53,7 @@ assign TLAST_next = (forwarder_rd_addr >= maxaddr && forwarder_rd_en);
 //The next flit in TDATA is the last, in this case 
 
 wire [ADDR_WIDTH-1:0] next_addr;
-assign next_addr = (ready_for_forwarder && forwarder_rd_en) ? ((forwarder_rd_addr >= maxaddr) ? 0 : forwarder_rd_addr+1) : forwarder_rd_addr;
+assign next_addr = (ready_for_forwarder_r && forwarder_rd_en) ? ((forwarder_rd_addr >= maxaddr) ? 0 : forwarder_rd_addr+1) : forwarder_rd_addr;
 
 //We need to enable a read under the following circumstances:
 // TVALID	|	TREADY	|	ready_for_forwarder |	rd_en
@@ -63,7 +72,7 @@ assign next_addr = (ready_for_forwarder && forwarder_rd_en) ? ((forwarder_rd_add
 // (A + B')(B + B') = 	(Distribute OR over AND)
 // A + B'
 // This is equal to, ready_for_forwarder && (!TVALID || (TVALID && TREADY))
-assign forwarder_rd_en = (ready_for_forwarder && (TREADY || !TVALID) && !TLAST);
+assign forwarder_rd_en = (ready_for_forwarder_r && (TREADY || !TVALID) && !TLAST);
 
 wire TVALID_next;
 //I should do another truth table:
@@ -89,7 +98,7 @@ always @(posedge clk) begin
 	TLAST <= TLAST_next;
 end
 
-assign forwarder_done = TLAST && TVALID && ready_for_forwarder;
+assign forwarder_done = TLAST && TVALID && ready_for_forwarder_r;
 
 endmodule
 

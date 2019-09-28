@@ -28,13 +28,14 @@ Reading from packet memory:
 C0: (Input: addr_sel; Output: none)
 Writes either X or imm1 into packet_rd_addr register
 
-C1: (Input: packmem_rd_en*; Output: packmem_rd_addr)
+C1: (Input: packmem_rd_en*, transfer_sz*; Output: packmem_rd_addr)
 The packet_rd_addr register is output, and packmem_rd_en should be asserted (if necessary)
 
-C2: (Input: none; Output: packmem_rd_data)
+C2: (Input: none; Output: packmem_rd_data**)
 The packet memory has single-cycle access time, and the rd_data is ready
 
-*packmem_rd_en is directly output by the controller
+*packmem_rd_en and transfer_sz are directly output by the controller
+**is actually an input to this module, but it made sense to think of it as an output here
 
 Updating A/X/PC:
 ---------------

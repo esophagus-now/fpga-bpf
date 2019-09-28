@@ -1,5 +1,4 @@
 `timescale 1ns / 1ps
-
 /*
 decode_compute1_stage1.v
 
@@ -23,6 +22,15 @@ stage1_stalled
 our PC_en
 */
 
+
+
+/*
+First, a bunch of defines to make the code easier to deal with.
+These were taken from the BPF reference implementation, and
+modified to match Verilog's syntax
+*/
+`include "bpf_defs.vh" 
+
 module decode_compute1_stage1(
 	input wire clk,
 	input wire rst,
@@ -41,9 +49,10 @@ module decode_compute1_stage1(
 	//These are the signals used in stage2
 	//(stage 2 expects these to be registered here)
 	output reg ALU_sel,
-	output reg PC_sel,
+	output reg [2:0] jmp_type, //PC_sel can only be determined in stage 2 when ALU flags are ready
 	output reg PC_en, 
-	output reg packmem_rd_en, 
+	output reg packet_mem_rd_en, 
+	output reg transfer_sz,
 	output reg regfile_sel, 
 	output reg regfile_wr_en,
 	
@@ -57,4 +66,102 @@ module decode_compute1_stage1(
 	output wire stage1_valid //Do I really need this?
 	
 );
+
+//These are named subfields of the opcode
+wire [2:0] opcode_class;
+assign opcode_class = opcode[2:0];
+wire [2:0] addr_type;
+assign addr_type = opcode[7:5];
+wire [2:0] jmp_type_internal;
+assign jmp_type_internal = opcode[6:4];
+wire [4:0] miscop;
+assign miscop = opcode[7:3];
+wire [1:0] retval;
+assign retval = opcode[4:3];
+
+//Compute1 (outputs from this stage)
+assign B_sel = opcode[3];
+assign addr_type = (addr_type == `BPF_IND) ? `PACK_ADDR_IND : `PACK_ADDR_ABS;
+
+//Decoding
+
+//Outputs for stage2
+always @(posedge clk) begin
+	ALU_sel <= opcode[7:4];
+	jmp_type <= jmp_type_internal; //PC_sel can only be determined in stage2
+	transfer_sz <= opcode[4:3]; 
+	PC_en <= (opcode_class == `BPF_JMP);
+	
+	//packet_mem_rd_en
+	if ((opcode_class == `BPF_LD) && (addr_type == `BPF_ABS || addr_type == `BPF_IND)) begin
+		packet_mem_rd_en <= 1;
+	end else if ((opcode_class == `BPF_LDX) && (addr_type == `BPF_ABS || addr_type == `BPF_IND || addr_type == `BPF_MSH)) begin
+		packet_mem_rd_en <= 1;
+	end else begin
+		packet_mem_rd_en <= 0;
+	end
+	
+	regfile_sel <= (opcode_class == `BPF_STX) ? `REGFILE_IN_X : `REGFILE_IN_A;
+	regfile_wr_en <= (opcode_class == `BPF_ST || opcode_class == `BPF_STX);
+end
+
+//I did this to help Vivado's compiler
+wire miscop_is_zero;
+assign miscop_is_zero = (miscop == 0);
+
+//Outputs for stage3
+always @(posedge clk) begin
+
+	//A_sel and A_en
+	if (opcode_class == `BPF_LD) begin
+		A_en <= 1;
+		case (addr_type)
+			`BPF_ABS, `BPF_IND:
+				A_sel <= `A_SEL_PACKET_MEM;
+			`BPF_IMM:
+				A_sel <= `A_SEL_IMM;
+			`BPF_MEM:
+				A_sel <= `A_SEL_MEM;
+			`BPF_LEN:
+				A_sel <= `A_SEL_LEN;
+			default:
+				A_sel <= 0; //Error
+		endcase
+	end else if (opcode_class == `BPF_ALU) begin
+		A_en <= 1;
+		A_sel <= `A_SEL_ALU;
+	end else if (opcode_class == `BPF_MISC && !miscop_is_zero) begin //TXA instruction
+		A_en <= 1;
+		A_sel <= `A_SEL_X;
+	end else begin
+		A_en <= 1;
+		A_sel <= 0; //Don't synthesize a latch
+	end
+	
+	//X_sel and X_en
+	if (opcode_class == `BPF_LDX) begin
+		X_en <= 1;
+		case (addr_type)
+			`BPF_ABS, `BPF_IND:
+				X_sel <= `X_SEL_PACKET_MEM;
+			`BPF_IMM:
+				X_sel <= `X_SEL_IMM;
+			`BPF_MEM:
+				X_sel <= `X_SEL_MEM;
+			`BPF_LEN:
+				X_sel <= `X_SEL_LEN;
+			`BPF_MSH:
+				X_sel <= `X_SEL_MSH;
+			default:
+				X_sel <= 0; //Error
+		endcase
+	end else if (opcode_class == `BPF_MISC && miscop_is_zero) begin //TAX instruction
+		X_en <= 1;
+		X_sel <= `X_SEL_A;
+	end else begin
+		X_en <= 0;
+		X_sel <= 0; //Don't synthesize a latch
+	end
+end
+
 endmodule

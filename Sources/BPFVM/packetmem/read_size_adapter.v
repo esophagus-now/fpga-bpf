@@ -8,6 +8,12 @@ reads at (possibly) not-word-aligned address. I decided not to parameterize the
 data widths since it's a very specific case (but the address widths are still
 parameters). 
 
+Schedule (II=1):
+C0: (Input: packmem_rd_en, transfer_sz, byte_rd_addr; Output: word_rd_addra)
+Note that the bigword input in C1 is the read data from the packet memory 
+
+C1: (Input: bigowrd; Output: resized_mem_data)
+
 */
 
 //IMPORTANT: notice how the address is a combinational path, but that offset and

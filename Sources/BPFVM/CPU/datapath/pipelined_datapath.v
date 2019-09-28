@@ -41,7 +41,7 @@ Updating A/X/PC:
 C0: (Input: QQ_sel, QQ_en; Output: QQ)
 All registers (and memories) have the property that you can use the old value, even
 if their write enable is asserted (which will cause their value to update at the next
-clock edge).
+clock edge). Note that A and X are updated from imm3 and PC is updated from imm2
 
 C1: (Input: none; Output: none)
 The register's value is updated.
@@ -74,11 +74,12 @@ Note: this step is not performed in the datapath
 
 C1: (Input: imm1, B_sel, addr_sel; Output: ALU operand B)
 Note: if pipeline should stall here, note that the fetch stage will continue
-to feed in the old immediate value again
+to feed in the old immediate value again.
+Note: imm1 is used for ALU operand B and for packet rd addr.
 imm2 will be loaded with imm1 at the next clock edge
 
 C2: (Input: regfile_wr_en; Output: packmem_rd_addr, imm2)
-regfile_wr_en will decide if regfile[imm] will be updated. Note that packmem_rd_addr
+regfile_wr_en will decide if regfile[imm2] will be updated. Note that packmem_rd_addr
 becomes ready here (I've superimposed part of the packmem_rd_addr's schedule here)
 imm3 will be loaded with imm2 at the next clock edge
 
@@ -143,20 +144,26 @@ assign imm = IR[31:0];
 //This implements the "complicated imm business schedule"
 wire [31:0] imm1;
 reg [31:0] imm2; //PIPELINE REGISTER
+wire [31:0] imm2_n;
 reg [31:0] imm3; //PIPELINE REGISTER
+wire [31:0] imm3_n;
 
 assign imm1 = imm;
+assign imm2_n = imm1;
+assign imm3_n = imm2;
+
 always @(posedge clk) begin
-	imm2 <= imm1;
-	imm3 <= imm2;
+	if (rst) begin
+		imm2 <= 0;
+		imm3 <= 0;
+	end else begin
+		imm2 <= imm2_n;
+		imm3 <= imm3_n;
+	end
 end
 
+//Forward-declare wire
 wire [31:0] scratch_odata;
-wire [31:0] scratch_idata;
-
-assign scratch_idata = (regfile_sel == 1'b1) ? X : A;
-
-wire [PACKET_BYTE_ADDR_WIDTH-1:0] packet_addr_internal;
 
 //Named constants for A register MUX
 `ifndef A_SEL_IMM
@@ -174,7 +181,7 @@ always @(posedge clk) begin
     if (A_en == 1'b1) begin
         case (A_sel)
             3'b000:
-                A <= imm;
+                A <= imm3; //Note use of imm3
             3'b001:
                 A <= packet_data;
             3'b010:
@@ -184,7 +191,7 @@ always @(posedge clk) begin
             3'b100:
                 A <= packet_len;
             3'b101:
-                A <= {26'b0, imm[3:0], 2'b0}; //TODO: No MSH instruction is defined (by bpf) for A. Should I leave this?
+                A <= {26'b0, imm3[3:0], 2'b0}; //TODO: No MSH instruction is defined (by bpf) for A. Should I leave this?
             3'b110:
                 A <= ALU_out;
             3'b111: //for TXA instruction
@@ -206,7 +213,7 @@ always @(posedge clk) begin
     if (X_en == 1'b1) begin
         case (X_sel)
             `X_SEL_IMM:
-                X <= imm;
+                X <= imm3; //Note use of imm3
             `X_SEL_ABS:
                 X <= packet_data;
             `X_SEL_IND:
@@ -234,7 +241,7 @@ always @(posedge clk) begin
     end
 end
 
-always @(PC_sel, PC, jt, jf, imm) begin
+always @(*) begin
     case (PC_sel)
         2'b00:
             nextPC <= PC + 1;
@@ -243,23 +250,29 @@ always @(PC_sel, PC, jt, jf, imm) begin
         2'b10:
             nextPC <= PC + jf; 
         2'b11:
-            nextPC <= PC + imm; //TODO: sign-extend imm? 
+            nextPC <= PC + imm2; //TODO: sign-extend imm? 
+            //Note the use of imm2
     endcase
 end
 
-//packet_addr mux
-assign packet_addr_internal = (addr_sel == 1'b0) ? imm : (X+imm);
+wire [PACKET_BYTE_ADDR_WIDTH-1:0] packet_addr_internal;
+
+//packet_addr mux. Note use of imm1
+assign packet_addr_internal = (addr_sel == 1'b0) ? imm1 : (X+imm1);
 
 //This implements C0 for the packet address schedule
 reg [PACKET_BYTE_ADDR_WIDTH-1:0] packet_addr_r = 0; //PIPELINE REGISTER
-always @(posedge clk) packet_addr_r <= packet_addr_internal;
+always @(posedge clk) begin
+	if (rst) packet_addr_r <= 0;
+	else packet_addr_r <= packet_addr_internal;
+end
 
 //This implements C1 for the packet address schedule
 //packmem_rd_en is output by the controller
 assign packet_addr = packet_addr_r;
 
 //ALU operand B select
-assign B = (B_sel == 1'b1) ? X : imm;
+assign B = (B_sel == 1'b1) ? X : imm1; //Note use of imm1
 
 pipelined_alu # (
 	.PESSIMISTIC(PESSIMISTIC)
@@ -275,24 +288,32 @@ pipelined_alu # (
     .set(set)
     );
 
+wire [31:0] scratch_odata_internal;
+wire [31:0] scratch_idata;
+
+assign scratch_idata = (regfile_sel == 1'b1) ? X : A;
+
 regfile scratchmem (
     .clk(clk),
     .rst(rst),
     .addr(imm2[3:0]), //This implements C2 in the immediate's schedule
     .idata(scratch_idata),
-    .odata(scratch_odata),
+    .odata(scratch_odata_internal),
     .wr_en(regfile_wr_en)
 );
+
+reg [31:0] scratch_odata_r; //PIPELINE REGISTER
+always @(posedge clk) begin
+	if (rst) begin
+		scratch_odata_r <= 0;
+	end else begin
+		scratch_odata_r <= scratch_odata_internal;
+	end 
+end
 
 assign A_is_zero = (A == 0);
 assign X_is_zero = (X == 0);
 assign imm_lsb_is_zero = ~imm1[0]; //Very quick-n-dirty hack to get rid of
 //maybe one or two LUTs in a failing combinational path
 
-
-//Pipeline register reset logic
-always @(posedge clk) begin
-	imm2 <= 0;
-	imm3 <= 0;
-end
 endmodule

@@ -79,7 +79,6 @@ pipelined_bpfvm_ctrl # (
 	.packet_mem_rd_en(packet_mem_rd_en),
 	.inst_mem_rd_en(inst_mem_rd_en),
 	.transfer_sz(transfer_sz),
-	.mem_ready(mem_ready),
 	.A_is_zero(A_is_zero),
 	.imm_lsb_is_zero(imm_lsb_is_zero),
 	.X_is_zero(X_is_zero),

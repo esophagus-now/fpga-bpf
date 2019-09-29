@@ -41,7 +41,7 @@ module compute2_stage2(
 	input wire set,
 	
 	//Values from stage1	
-	input wire ALU_sel_in,
+	input wire [3:0] ALU_sel_in,
 	input wire [2:0] jmp_type, //PC_sel can only be determined in stage 2 when ALU flags are ready
 	input wire PC_en_in, 
 	input wire packet_mem_rd_en_in, 
@@ -57,7 +57,7 @@ module compute2_stage2(
 	
 	//This stage's outputs
 	output reg [3:0] ALU_sel,
-	output `logic [2:0] PC_sel, 
+	output `logic [1:0] PC_sel, 
 	output reg PC_en, 
 	output reg packet_mem_rd_en, 
 	output reg [1:0] transfer_sz,

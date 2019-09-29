@@ -311,6 +311,7 @@ always @(posedge clk) begin
 		scratch_odata_r <= scratch_odata_internal;
 	end 
 end
+assign scratch_odata = scratch_odata_r;
 
 assign A_is_zero = (A == 0);
 assign X_is_zero = (X == 0);

@@ -35,7 +35,6 @@ module pipelined_bpfvm_ctrl # (
     output wire packet_mem_rd_en,
     output wire inst_mem_rd_en,
     output wire [1:0] transfer_sz, //TODO: should this be in the datapath instead?
-    input wire mem_ready, //Signal from packetmem.v; tells CPU when to start
     input wire A_is_zero,
     input wire X_is_zero,
     input wire imm_lsb_is_zero,

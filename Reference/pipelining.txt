@@ -1,0 +1,43 @@
+Stage 0: Fetch
+--------------
+Control signals used:
+inst_mem_rd_en, PC_sel, PC_en
+
+Values read:
+PC
+
+Values written:
+PC, Imm1, Opcode & parameters
+
+Stage 1: Decode/Compute1
+------------------------
+Control signals used:
+B_sel, addr_sel, accept, reject
+
+Values read:
+Opcode & parameters, A, X, Imm1
+
+Values written:
+ALU flags, ALU ops, packmem_rd_addr, Imm2
+
+Stage 2: Compute2
+-----------------
+Control signals used:
+ALU_sel, PC_sel, PC_en, packmem_rd_en, transfer_sz, regfile_sel, regfile_wr_en
+
+Values read:
+ALU_ops, ALU_flags, PC, packmem_rd_addr, Imm2
+
+Values written:
+ALU_out, PC, packmem_data, regfile[Imm2], Imm3
+
+Stage 3: Writeback
+------------------
+Control signals used:
+A_sel, A_en, X_sel, X_en
+
+Values read:
+ALU_out, regfile[Imm3], packmem_data, A, X, Imm3
+
+Values written:
+A, X

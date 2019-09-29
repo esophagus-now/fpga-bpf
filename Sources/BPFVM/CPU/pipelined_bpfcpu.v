@@ -40,7 +40,6 @@ wire addr_sel; //Select lines for packet read address (either absolute or indire
 wire A_en; //Enable line for register A
 wire X_en; //Enable line for register X
 wire PC_en; //Enable line for register PC
-wire PC_rst; //Currently not used
 wire B_sel; //Selects second ALU operand (X or immediate)
 wire [3:0] ALU_sel; //Selects ALU operation
 //There is an instruction in BPF which loads A or X with the packet's length,
@@ -59,7 +58,7 @@ wire X_is_zero; //Output from "ALU": X == 0
 pipelined_bpfvm_ctrl # (
 	.PESSIMISTIC(PESSIMISTIC)
 ) controller (	
-	.rst(rst),
+	.rst(rst || !mem_ready || cpu_acc || cpu_rej), //Hack: this is how we reset when program finishes
 	.clk(clk),
 	.A_sel(A_sel),
 	.X_sel(X_sel),
@@ -68,7 +67,6 @@ pipelined_bpfvm_ctrl # (
 	.A_en(A_en),
 	.X_en(X_en),
 	.PC_en(PC_en),
-	.PC_rst(PC_rst),
 	.B_sel(B_sel),
 	.ALU_sel(ALU_sel),
 	.regfile_wr_en(regfile_wr_en),
@@ -94,7 +92,7 @@ pipelined_bpfvm_datapath # (
 	.PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH),
 	.PESSIMISTIC(PESSIMISTIC)
 ) datapath (
-	.rst(rst),
+	.rst(rst || !mem_ready), 
 	.clk(clk),
 	.A_sel(A_sel),
 	.X_sel(X_sel),
@@ -103,7 +101,7 @@ pipelined_bpfvm_datapath # (
 	.A_en(A_en),
 	.X_en(X_en),
 	.PC_en(PC_en),
-	.PC_rst(PC_rst),
+	.PC_rst(cpu_acc || cpu_rej), //Hack: this is how we reset the PC when program finishes
 	.B_sel(B_sel),
 	.ALU_sel(ALU_sel),
 	.inst_mem_data(inst_mem_data),

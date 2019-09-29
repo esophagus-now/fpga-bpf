@@ -235,7 +235,7 @@ end
 
 //Program counter's new value
 always @(posedge clk) begin
-    if (PC_rst == 1'b1) begin
+    if (PC_rst || rst) begin
         PC <= 0;
     end else if (PC_en == 1'b1) begin
         PC <= nextPC;

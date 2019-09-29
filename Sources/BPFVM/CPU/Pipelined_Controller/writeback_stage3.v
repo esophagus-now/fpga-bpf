@@ -27,6 +27,7 @@ module writeback_stage3(
 	input wire A_en_in,
 	input wire [2:0] X_sel_in,
 	input wire X_en_in,
+	input wire valid_in,
 	
 	//This stage's outputs
 	output reg [2:0] A_sel,
@@ -40,8 +41,8 @@ module writeback_stage3(
 
 always @(posedge clk) begin
 	A_sel <= A_sel_in;
-	A_en <= A_en_in;
+	A_en <= valid_in && A_en_in;
 	X_sel <= X_sel_in;
-	X_en <= X_en_in;
+	X_en <= valid_in && X_en_in;
 end
 endmodule

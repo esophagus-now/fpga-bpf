@@ -22,7 +22,10 @@ stage1_stalled
 our PC_en
 */
 
-
+//Subtle bug: you need to gate all the "hot" control bus signals with
+//the valid signal. Stuff like write enables, mostly.
+//Subtler bug: You only gate output signals; leave the stuff in the 
+//pipeline untouched
 
 /*
 First, a bunch of defines to make the code easier to deal with.
@@ -38,16 +41,23 @@ module decode_compute1_stage1(
 	input wire clk,
 	input wire rst,
 	
+	//Stall logic inputs
 	input wire stage2_A_en,
 	input wire stage2_X_en,
 	input wire stage3_A_en,
 	input wire stage3_X_en,
 	
+	//Other inputs to this module
+	input wire valid_in,
 	//Expected to be registered in previous stage
 	input wire [15:0] opcode,
+	input wire imm_lsb_is_zero,
 	
+	//Outputs from this stage
 	output wire B_sel,
 	output wire addr_sel,
+	output wire accept,
+	output wire reject,
 	
 	//These are the signals used in stage2
 	output wire [3:0] ALU_sel_decoded,
@@ -66,8 +76,10 @@ module decode_compute1_stage1(
 	output `logic X_en_decoded,
 	
 	//Stall logic outputs
-	output wire stage1_stalled
-	//PC_en, but it's already in the outputs
+	output wire stage1_stalled,
+	output wire PC_en_gated, //Very subtle: the stall signals are "hot" too
+	
+	output wire valid
 );
 
 //These are named subfields of the opcode
@@ -96,18 +108,25 @@ wire is_RETA_instruction;
 assign is_RETA_instruction = (opcode_class == `BPF_RET) && (retval == `RET_A);
 wire is_RETX_instruction;
 assign is_RETX_instruction = (opcode_class == `BPF_RET) && (retval == `RET_X);
+wire is_RETIMM_instruction;
+assign is_RETIMM_instruction = (opcode_class == `BPF_RET && retval == `RET_IMM);
 
 wire we_read_A; 
 assign we_read_A = (opcode_class == `BPF_ALU) || (opcode_class == `BPF_JMP) || (opcode_class == `BPF_ST) || (is_RETA_instruction) || (is_TAX_instruction);
 wire we_read_X;
-assign we_read_X = (opcode_class == `BPF_STX) || (is_RETX_instruction) || (is_TXA_instruction);
+assign we_read_X = ((opcode_class == `BPF_LD || opcode_class == `BPF_LDX) && addr_type == `BPF_IND) || (opcode_class == `BPF_STX) || (is_RETX_instruction) || (is_TXA_instruction);
 
 assign stage1_stalled = (we_read_A && (stage2_A_en || stage3_A_en)) || (we_read_X && (stage2_X_en || stage3_X_en));
+
+//logic for valid
+assign valid = valid_in && !stage1_stalled;
 
 //COMPUTE1 (outputs from this stage)
 
 assign B_sel = opcode[3];
 assign addr_sel = (addr_type == `BPF_IND) ? `PACK_ADDR_IND : `PACK_ADDR_ABS;
+assign accept = !imm_lsb_is_zero && is_RETIMM_instruction && valid_in;
+assign reject = imm_lsb_is_zero && is_RETIMM_instruction && valid_in;
 
 //DECODE (pre-compute outputs from future stages)
 
@@ -130,6 +149,9 @@ end
 
 assign regfile_sel_decoded = (opcode_class == `BPF_STX) ? `REGFILE_IN_X : `REGFILE_IN_A;
 assign regfile_wr_en_decoded = (opcode_class == `BPF_ST || opcode_class == `BPF_STX);
+
+//PATCH: realizing stall signals are different from the pipeline signal with the same name
+assign PC_en_gated = PC_en_decoded && valid;
 
 //Outputs for stage3
 always @(*) begin

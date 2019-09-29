@@ -23,7 +23,6 @@ module pipelined_bpfvm_ctrl # (
     output wire A_en,
     output wire X_en,
     output wire PC_en,
-    output wire PC_rst,
     output wire B_sel,
     output wire [3:0] ALU_sel,
     output wire regfile_wr_en,
@@ -40,14 +39,15 @@ module pipelined_bpfvm_ctrl # (
     input wire A_is_zero,
     input wire X_is_zero,
     input wire imm_lsb_is_zero,
-    output reg accept,
-    output reg reject
+    output wire accept,
+    output wire reject
 );
 
 //Internal wires
 //Stage 0 outputs
 wire [1:0] PC_sel_stage0;
 wire PC_en_stage0;
+wire valid_stage0;
 
 //Stage 1 outputs
 wire [3:0] ALU_sel_stage1;
@@ -62,17 +62,20 @@ wire A_en_stage1;
 wire [2:0] X_sel_stage1;
 wire X_en_stage1;
 wire stage1_stalled;
+wire PC_en_stage1_gated;
+wire valid_stage1;
 
 //Stage 2 outputs
+wire [1:0] PC_sel_stage2;
 wire PC_en_stage2;
-wire [1:0] A_sel_stage2;
+wire [2:0] A_sel_stage2;
 wire A_en_stage2;
 wire [2:0] X_sel_stage2;
 wire X_en_stage2;
+wire valid_stage2;
 
 //Stage 3 outputs
-wire A_en_stage3;
-wire X_en_stage3;
+//(all outputs are exported out of this module)
 
 fetch_stage0 stage0(
 		.clk(clk),
@@ -80,13 +83,15 @@ fetch_stage0 stage0(
 		
 		//Stall logic inputs
 		.stage1_stalled(stage1_stalled),
-		.stage1_PC_en(PC_en_stage1),
+		.stage1_PC_en(PC_en_stage1_gated),
 		.stage2_PC_en(PC_en_stage2),
 		
 		//inst_mem_rd_addr directly wired from datapath to inst mem
 		.inst_mem_rd_en(inst_mem_rd_en),
 		.PC_sel(PC_sel_stage0),
-		.PC_en(PC_en_stage0)
+		.PC_en(PC_en_stage0),
+		
+		.valid(valid_stage0)
 );
 
 decode_compute1_stage1 stage1(
@@ -95,14 +100,19 @@ decode_compute1_stage1 stage1(
 	
 	.stage2_A_en(A_en_stage2),
 	.stage2_X_en(X_en_stage2),
-	.stage3_A_en(A_en_stage3),
-	.stage3_X_en(X_en_stage3),
+	.stage3_A_en(A_en),
+	.stage3_X_en(X_en),
 	
+	//Other inputs to this module
+	.valid_in(valid_stage0),
 	//Expected to be registered in previous stage
 	.opcode(opcode),
+	.imm_lsb_is_zero(imm_lsb_is_zero),
 	
 	.B_sel(B_sel),
 	.addr_sel(addr_sel),
+	.accept(accept),
+	.reject(reject),
 	
 	//These are the signals used in stage2
 	.ALU_sel_decoded(ALU_sel_stage1),
@@ -121,7 +131,9 @@ decode_compute1_stage1 stage1(
 	.X_en_decoded(X_en_stage1),
 	
 	//Stall logic outputs
-	.stage1_stalled(stage1_stalled)
+	.stage1_stalled(stage1_stalled),
+	.PC_en_gated(PC_en_stage1_gated),
+	.valid(valid_stage1)
 );
 
 compute2_stage2 stage2 (
@@ -143,6 +155,7 @@ compute2_stage2 stage2 (
 	.transfer_sz_in(transfer_sz_stage1),
 	.regfile_sel_in(regfile_sel_stage1), 
 	.regfile_wr_en_in(regfile_wr_en_stage1),
+	.valid_in(valid_stage1),
 	
 	.A_sel_in(A_sel_stage1),
 	.A_en_in(A_en_stage1),
@@ -151,12 +164,13 @@ compute2_stage2 stage2 (
 	
 	//This stage's outputs
 	.ALU_sel(ALU_sel),
-	.PC_sel(PC_sel), 
-	.PC_en(PC_en), 
+	.PC_sel(PC_sel_stage2), 
+	.PC_en(PC_en_stage2), 
 	.packet_mem_rd_en(packet_mem_rd_en), 
 	.transfer_sz(transfer_sz),
 	.regfile_sel(regfile_sel), 
 	.regfile_wr_en(regfile_wr_en),
+	.valid(valid_stage2),
 	
 	//These are the signals used in stage3
 	//(stage 3 expects these to be registered here)
@@ -175,6 +189,7 @@ writeback_stage3 stage3 (
 	.A_en_in(A_en_stage2),
 	.X_sel_in(X_sel_stage2),
 	.X_en_in(X_en_stage2),
+	.valid_in(valid_stage2),
 	
 	//This stage's outputs
 	.A_sel(A_sel),
@@ -182,4 +197,7 @@ writeback_stage3 stage3 (
 	.X_sel(X_sel),
 	.X_en(X_en)
 );
+
+assign PC_sel = PC_sel_stage0 | PC_sel_stage2;
+assign PC_en = PC_en_stage0 | PC_en_stage2;
 endmodule

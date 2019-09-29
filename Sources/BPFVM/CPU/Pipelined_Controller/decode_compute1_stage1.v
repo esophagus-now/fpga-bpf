@@ -9,8 +9,8 @@ B_sel
 addr_sel
 
 This module is stalled if any of these conditions hold:
-A_en is 1 in stage2 AND our opcode is JMP or ALU
-A_en is 1 in stage 3 AND our opcode is JMP or ALU
+A_en is 1 in stage2 AND our opcode is JMP or ALU or ST or TAX or RETA
+A_en is 1 in stage 3 AND our opcode is JMP or ALU or STX or TXA or RETX
 X_en is 1 in stage 2 AND our opcode is JMP or ALU AND our B_sel is X
 X_en is 1 in stage 3 AND our opcode is JMP or ALU AND our B_sel is X
 X_en is 1 in stage 2 AND our opcode is JMP or ALU AND our addr_sel is X
@@ -31,6 +31,9 @@ modified to match Verilog's syntax
 */
 `include "bpf_defs.vh" 
 
+//I use logic to mean "it's combinational, but Verilog forces me to use reg"
+`define logic reg
+
 module decode_compute1_stage1(
 	input wire clk,
 	input wire rst,
@@ -47,25 +50,24 @@ module decode_compute1_stage1(
 	output wire addr_sel,
 	
 	//These are the signals used in stage2
-	//(stage 2 expects these to be registered here)
-	output reg ALU_sel,
-	output reg [2:0] jmp_type, //PC_sel can only be determined in stage 2 when ALU flags are ready
-	output reg PC_en, 
-	output reg packet_mem_rd_en, 
-	output reg transfer_sz,
-	output reg regfile_sel, 
-	output reg regfile_wr_en,
+	output wire ALU_sel_decoded,
+	output wire [2:0] jmp_type, //PC_sel can only be determined in stage 2 when ALU flags are ready
+	output wire PC_en_decoded, 
+	output `logic packet_mem_rd_en_decoded, 
+	output wire transfer_sz_decoded,
+	output wire regfile_sel_decoded, 
+	output wire regfile_wr_en_decoded,
 	
 	//These are the signals used in stage3
-	//(stage 3 expects these to be registered in stage2, who expects them to be registered here)
-	output reg A_sel, 
-	output reg A_en, 
-	output reg X_sel, 
-	output reg X_en,
+	//(stage 3 expects these to be registered in stage2)
+	output `logic A_sel_decoded, 
+	output `logic A_en_decoded, 
+	output `logic X_sel_decoded, 
+	output `logic X_en_decoded,
 	
-	output wire stage1_stalled,
-	output wire stage1_valid //Do I really need this?
-	
+	//Stall logic outputs
+	output wire stage1_stalled
+	//PC_en, but it's already in the outputs
 );
 
 //These are named subfields of the opcode
@@ -110,76 +112,76 @@ assign addr_sel = (addr_type == `BPF_IND) ? `PACK_ADDR_IND : `PACK_ADDR_ABS;
 //DECODE (pre-compute outputs from future stages)
 
 //Outputs for stage2
-always @(posedge clk) begin
-	ALU_sel <= opcode[7:4];
-	jmp_type <= jmp_type_internal; //PC_sel can only be determined in stage2
-	transfer_sz <= opcode[4:3]; 
-	PC_en <= (opcode_class == `BPF_JMP);
-	
-	//packet_mem_rd_en
+assign ALU_sel_decoded = opcode[7:4];
+assign jmp_type = jmp_type_internal; //PC_sel can only be determined in stage2
+assign transfer_sz_decoded = opcode[4:3]; 
+assign PC_en_decoded = (opcode_class == `BPF_JMP);
+
+//packet_mem_rd_en
+always @(*) begin
 	if ((opcode_class == `BPF_LD) && (addr_type == `BPF_ABS || addr_type == `BPF_IND)) begin
-		packet_mem_rd_en <= 1;
+		packet_mem_rd_en_decoded <= 1;
 	end else if ((opcode_class == `BPF_LDX) && (addr_type == `BPF_ABS || addr_type == `BPF_IND || addr_type == `BPF_MSH)) begin
-		packet_mem_rd_en <= 1;
+		packet_mem_rd_en_decoded <= 1;
 	end else begin
-		packet_mem_rd_en <= 0;
+		packet_mem_rd_en_decoded <= 0;
 	end
-	
-	regfile_sel <= (opcode_class == `BPF_STX) ? `REGFILE_IN_X : `REGFILE_IN_A;
-	regfile_wr_en <= (opcode_class == `BPF_ST || opcode_class == `BPF_STX);
 end
 
+assign regfile_sel_decoded = (opcode_class == `BPF_STX) ? `REGFILE_IN_X : `REGFILE_IN_A;
+assign regfile_wr_en_decoded = (opcode_class == `BPF_ST || opcode_class == `BPF_STX);
+
 //Outputs for stage3
-always @(posedge clk) begin
+always @(*) begin
 	//A_sel and A_en
 	if (opcode_class == `BPF_LD) begin
-		A_en <= 1;
+		A_en_decoded <= 1;
 		case (addr_type)
 			`BPF_ABS, `BPF_IND:
-				A_sel <= `A_SEL_PACKET_MEM;
+				A_sel_decoded <= `A_SEL_PACKET_MEM;
 			`BPF_IMM:
-				A_sel <= `A_SEL_IMM;
+				A_sel_decoded <= `A_SEL_IMM;
 			`BPF_MEM:
-				A_sel <= `A_SEL_MEM;
+				A_sel_decoded <= `A_SEL_MEM;
 			`BPF_LEN:
-				A_sel <= `A_SEL_LEN;
+				A_sel_decoded <= `A_SEL_LEN;
 			default:
-				A_sel <= 0; //Error
+				A_sel_decoded <= 0; //Error
 		endcase
 	end else if (opcode_class == `BPF_ALU) begin
-		A_en <= 1;
-		A_sel <= `A_SEL_ALU;
+		A_en_decoded <= 1;
+		A_sel_decoded <= `A_SEL_ALU;
 	end else if (is_TXA_instruction) begin
-		A_en <= 1;
-		A_sel <= `A_SEL_X;
+		A_en_decoded <= 1;
+		A_sel_decoded <= `A_SEL_X;
 	end else begin
-		A_en <= 0;
-		A_sel <= 0; //Don't synthesize a latch
+		A_en_decoded <= 0;
+		A_sel_decoded <= 0; //Don't synthesize a latch
 	end
 	
 	//X_sel and X_en
 	if (opcode_class == `BPF_LDX) begin
-		X_en <= 1;
+		X_en_decoded <= 1;
 		case (addr_type)
 			`BPF_ABS, `BPF_IND:
-				X_sel <= `X_SEL_PACKET_MEM;
+				X_sel_decoded <= `X_SEL_PACKET_MEM;
 			`BPF_IMM:
-				X_sel <= `X_SEL_IMM;
+				X_sel_decoded <= `X_SEL_IMM;
 			`BPF_MEM:
-				X_sel <= `X_SEL_MEM;
+				X_sel_decoded <= `X_SEL_MEM;
 			`BPF_LEN:
-				X_sel <= `X_SEL_LEN;
+				X_sel_decoded <= `X_SEL_LEN;
 			`BPF_MSH:
-				X_sel <= `X_SEL_MSH;
+				X_sel_decoded <= `X_SEL_MSH;
 			default:
-				X_sel <= 0; //Error
+				X_sel_decoded <= 0; //Error
 		endcase
 	end else if (is_TAX_instruction) begin 
-		X_en <= 1;
-		X_sel <= `X_SEL_A;
+		X_en_decoded <= 1;
+		X_sel_decoded <= `X_SEL_A;
 	end else begin
-		X_en <= 0;
-		X_sel <= 0; //Don't synthesize a latch
+		X_en_decoded <= 0;
+		X_sel_decoded <= 0; //Don't synthesize a latch
 	end
 end
 

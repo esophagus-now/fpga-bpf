@@ -25,6 +25,7 @@ module fetch_stage0(
 	input wire clk,
 	input wire rst,
 	
+	//Stall logic inputs
 	input wire stage1_stalled,
 	input wire stage1_PC_en,
 	input wire stage2_PC_en,
@@ -32,9 +33,7 @@ module fetch_stage0(
 	//inst_mem_rd_addr directly wired from datapath to inst mem
 	output wire inst_mem_rd_en,
 	output wire [1:0] PC_sel,
-	output wire PC_en,
-	
-	output wire stage0_valid //Do I really need this?
+	output wire PC_en
 );
 
 wire good2go = ~(stage1_stalled || stage1_PC_en || stage2_PC_en);
@@ -44,6 +43,5 @@ wire good2go = ~(stage1_stalled || stage1_PC_en || stage2_PC_en);
 assign inst_mem_rd_en = good2go;
 assign PC_sel = (good2go) ? `PC_SEL_PLUS_1 : 2'b0;
 assign PC_en = good2go;
-assign stage0_valid = good2go; //TODO: figure out if I really need this
 
 endmodule

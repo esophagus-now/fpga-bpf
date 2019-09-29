@@ -63,6 +63,7 @@ module decode_compute1_stage1(
 	output reg X_sel, 
 	output reg X_en,
 	
+	output wire stage1_stalled,
 	output wire stage1_valid //Do I really need this?
 	
 );
@@ -79,11 +80,34 @@ assign miscop = opcode[7:3];
 wire [1:0] retval;
 assign retval = opcode[4:3];
 
-//Compute1 (outputs from this stage)
-assign B_sel = opcode[3];
-assign addr_type = (addr_type == `BPF_IND) ? `PACK_ADDR_IND : `PACK_ADDR_ABS;
+//Figure out if we are "stalled" (which doesn't actually do anything besides output 
+//a stalled signal to stop stage0 doing anything)
 
-//Decoding
+//Helpful intermediate values
+wire miscop_is_zero;
+assign miscop_is_zero = (miscop == 2'b00);
+wire is_TAX_instruction;
+assign is_TAX_instruction = (opcode_class == `BPF_MISC) && (miscop_is_zero);
+wire is_TXA_instruction;
+assign is_TXA_instruction = (opcode_class == `BPF_MISC) && (!miscop_is_zero);
+wire is_RETA_instruction;
+assign is_RETA_instruction = (opcode_class == `BPF_RET) && (retval == `RET_A);
+wire is_RETX_instruction;
+assign is_RETX_instruction = (opcode_class == `BPF_RET) && (retval == `RET_X);
+
+wire we_read_A; 
+assign we_read_A = (opcode_class == `BPF_ALU) || (opcode_class == `BPF_JMP) || (opcode_class == `BPF_ST) || (is_RETA_instruction) || (is_TAX_instruction);
+wire we_read_X;
+assign we_read_X = (opcode_class == `BPF_STX) || (is_RETX_instruction) || (is_TXA_instruction);
+
+assign stage1_stalled = (we_read_A && (stage2_A_en || stage3_A_en)) || (we_read_X && (stage2_X_en || stage3_X_en));
+
+//COMPUTE1 (outputs from this stage)
+
+assign B_sel = opcode[3];
+assign addr_sel = (addr_type == `BPF_IND) ? `PACK_ADDR_IND : `PACK_ADDR_ABS;
+
+//DECODE (pre-compute outputs from future stages)
 
 //Outputs for stage2
 always @(posedge clk) begin
@@ -105,13 +129,8 @@ always @(posedge clk) begin
 	regfile_wr_en <= (opcode_class == `BPF_ST || opcode_class == `BPF_STX);
 end
 
-//I did this to help Vivado's compiler
-wire miscop_is_zero;
-assign miscop_is_zero = (miscop == 0);
-
 //Outputs for stage3
 always @(posedge clk) begin
-
 	//A_sel and A_en
 	if (opcode_class == `BPF_LD) begin
 		A_en <= 1;
@@ -130,11 +149,11 @@ always @(posedge clk) begin
 	end else if (opcode_class == `BPF_ALU) begin
 		A_en <= 1;
 		A_sel <= `A_SEL_ALU;
-	end else if (opcode_class == `BPF_MISC && !miscop_is_zero) begin //TXA instruction
+	end else if (is_TXA_instruction) begin
 		A_en <= 1;
 		A_sel <= `A_SEL_X;
 	end else begin
-		A_en <= 1;
+		A_en <= 0;
 		A_sel <= 0; //Don't synthesize a latch
 	end
 	
@@ -155,7 +174,7 @@ always @(posedge clk) begin
 			default:
 				X_sel <= 0; //Error
 		endcase
-	end else if (opcode_class == `BPF_MISC && miscop_is_zero) begin //TAX instruction
+	end else if (is_TAX_instruction) begin 
 		X_en <= 1;
 		X_sel <= `X_SEL_A;
 	end else begin

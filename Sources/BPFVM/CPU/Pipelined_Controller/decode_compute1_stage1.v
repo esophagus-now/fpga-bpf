@@ -50,19 +50,19 @@ module decode_compute1_stage1(
 	output wire addr_sel,
 	
 	//These are the signals used in stage2
-	output wire ALU_sel_decoded,
+	output wire [3:0] ALU_sel_decoded,
 	output wire [2:0] jmp_type, //PC_sel can only be determined in stage 2 when ALU flags are ready
 	output wire PC_en_decoded, 
 	output `logic packet_mem_rd_en_decoded, 
-	output wire transfer_sz_decoded,
+	output wire [1:0] transfer_sz_decoded,
 	output wire regfile_sel_decoded, 
 	output wire regfile_wr_en_decoded,
 	
 	//These are the signals used in stage3
 	//(stage 3 expects these to be registered in stage2)
-	output `logic A_sel_decoded, 
+	output `logic [2:0] A_sel_decoded, 
 	output `logic A_en_decoded, 
-	output `logic X_sel_decoded, 
+	output `logic [2:0] X_sel_decoded, 
 	output `logic X_en_decoded,
 	
 	//Stall logic outputs

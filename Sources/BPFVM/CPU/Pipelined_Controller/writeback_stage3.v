@@ -23,15 +23,15 @@ module writeback_stage3(
 	input wire rst,
 	
 	//Values from stage2
-	input wire A_sel_in,
+	input wire [2:0] A_sel_in,
 	input wire A_en_in,
-	input wire X_sel_in,
+	input wire [2:0] X_sel_in,
 	input wire X_en_in,
 	
 	//This stage's outputs
-	output reg A_sel,
+	output reg [2:0] A_sel,
 	output reg A_en,
-	output reg X_sel,
+	output reg [2:0] X_sel,
 	output reg X_en
 	
 	//Stall logic outputs:

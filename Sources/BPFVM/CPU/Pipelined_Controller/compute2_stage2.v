@@ -45,25 +45,25 @@ module compute2_stage2(
 	input wire regfile_sel_in, 
 	input wire regfile_wr_en_in,
 	
-	input wire A_sel_in,
+	input wire [2:0] A_sel_in,
 	input wire A_en_in,
-	input wire X_sel_in,
+	input wire [2:0] X_sel_in,
 	input wire X_en_in,
 	
 	//This stage's outputs
-	output reg ALU_sel,
-	output reg PC_sel, 
+	output reg [3:0] ALU_sel,
+	output reg [2:0] PC_sel, 
 	output reg PC_en, 
 	output reg packet_mem_rd_en, 
-	output reg transfer_sz,
+	output reg [1:0] transfer_sz,
 	output reg regfile_sel, 
 	output reg regfile_wr_en,
 	
 	//These are the signals used in stage3
 	//(stage 3 expects these to be registered here)
-	output reg A_sel_decoded, 
+	output reg [2:0] A_sel_decoded, 
 	output reg A_en_decoded, 
-	output reg X_sel_decoded, 
+	output reg [2:0] X_sel_decoded, 
 	output reg X_en_decoded
 	
 	//Stall logic outputs:

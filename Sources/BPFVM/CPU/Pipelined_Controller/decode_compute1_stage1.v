@@ -42,10 +42,8 @@ module decode_compute1_stage1(
 	input wire rst,
 	
 	//Stall logic inputs
-	input wire stage2_A_en,
-	input wire stage2_X_en,
-	input wire stage3_A_en,
-	input wire stage3_X_en,
+	input wire A_en_stall_sig,
+	input wire X_en_stall_sig,
 	
 	//Other inputs to this module
 	input wire valid_in,
@@ -116,7 +114,7 @@ assign we_read_A = (opcode_class == `BPF_ALU) || (opcode_class == `BPF_JMP) || (
 wire we_read_X;
 assign we_read_X = ((opcode_class == `BPF_LD || opcode_class == `BPF_LDX) && addr_type == `BPF_IND) || (opcode_class == `BPF_STX) || (is_RETX_instruction) || (is_TXA_instruction);
 
-assign stage1_stalled = (we_read_A && (stage2_A_en || stage3_A_en)) || (we_read_X && (stage2_X_en || stage3_X_en));
+assign stage1_stalled = (we_read_A && A_en_stall_sig) || (we_read_X && X_en_stall_sig);
 
 //logic for valid
 assign valid = valid_in && !stage1_stalled;

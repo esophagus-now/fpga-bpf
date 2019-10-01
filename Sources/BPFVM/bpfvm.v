@@ -79,7 +79,8 @@ pipelined_bpfcpu # (
 
 packetmem # (
 	.PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH),
-	.SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)
+	.SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH),
+	.PESSIMISTIC(PESSIMISTIC)
 ) packmem (
 	.clk(clk),
 	.p3ctrl_rst(rst),

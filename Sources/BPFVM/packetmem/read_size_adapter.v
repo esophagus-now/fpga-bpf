@@ -33,10 +33,11 @@ C1: (Input: bigowrd; Output: resized_mem_data)
 
 module read_size_adapter # (
     parameter PACKET_BYTE_ADDR_WIDTH = 12, // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
-    parameter SNOOP_FWD_ADDR_WIDTH = 9
+    parameter SNOOP_FWD_ADDR_WIDTH = 9,
     //this makes the data width of the snooper and fwd equal to:
     // 2^{3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH}
     //Because of the support for unaligned reads, I actually use two ports of half the size
+    parameter PESSIMISTIC = 0
 )(
     input wire clk,
     input wire [PACKET_BYTE_ADDR_WIDTH-1:0] byte_rd_addr,
@@ -46,6 +47,8 @@ module read_size_adapter # (
     input wire [2*`PORT_DATA_WIDTH-1:0] bigword,
     output wire [31:0] resized_mem_data //zero-padded on the left (when necessary)
 );
+
+wire [31:0] resized_mem_data_internal;
 
 assign word_rd_addra = byte_rd_addr[PACKET_BYTE_ADDR_WIDTH-1 : `N - 1];
 
@@ -70,13 +73,33 @@ wire [31:0] selected;
 assign selected = bigword[(2*`PORT_DATA_WIDTH - {offset_r, 3'b0} )-1 -: 32];
 
 //odata is zero-padded if you ask for a smaller size
-assign resized_mem_data[7:0] = (sz_r == `BPF_W) ? selected[7:0]: 
+assign resized_mem_data_internal[7:0] = (sz_r == `BPF_W) ? selected[7:0]: 
 								((sz_r == `BPF_H) ? selected[23:16] : selected[31:24]); 
 
-assign resized_mem_data[15:8] = (sz_r == `BPF_W) ? selected[15:8]: 
+assign resized_mem_data_internal[15:8] = (sz_r == `BPF_W) ? selected[15:8]: 
 								((sz_r == `BPF_H) ? selected[31:24] : 0);
 
-assign resized_mem_data[31:16] = (sz_r == `BPF_W) ? selected[31:16]: 0;
+assign resized_mem_data_internal[31:16] = (sz_r == `BPF_W) ? selected[31:16]: 0;
+
+////////////////////////////////////////
+////////// PESSIMISTIC MODE ////////////
+////////////////////////////////////////
+generate
+if (PESSIMISTIC) begin
+	reg [31:0] resized_mem_data_r = 0;
+	always @(posedge clk) begin
+		resized_mem_data_r = resized_mem_data_internal;
+	end
+	assign resized_mem_data = resized_mem_data_r;
+end
+///////////////////////////////////////
+////////// OPTIMISTIC MODE ////////////
+///////////////////////////////////////
+else begin
+	assign resized_mem_data = resized_mem_data_internal;
+end
+endgenerate
+///////////////////////////////////////
 
 endmodule
 

@@ -76,6 +76,10 @@ wire valid_stage2;
 //Stage 3 outputs
 //(all outputs are exported out of this module)
 
+//Stall signals
+wire A_en_stall_sig; //Gets assigned to logical OR of all A_en signals in stages 2-3
+wire X_en_stall_sig; //Gets assigned to logical OR of all X_en signals in stages 2-3
+
 fetch_stage0 stage0(
 		.clk(clk),
 		.rst(rst),
@@ -97,10 +101,9 @@ decode_compute1_stage1 stage1(
 	.clk(clk),
 	.rst(rst),
 	
-	.stage2_A_en(A_en_stage2),
-	.stage2_X_en(X_en_stage2),
-	.stage3_A_en(A_en),
-	.stage3_X_en(X_en),
+	//Stall logic inputs
+	.A_en_stall_sig(A_en_stall_sig),
+	.X_en_stall_sig(X_en_stall_sig),
 	
 	//Other inputs to this module
 	.valid_in(valid_stage0),
@@ -179,23 +182,86 @@ compute2_stage2 stage2 (
 	.X_en_decoded(X_en_stage2)
 );
 
-writeback_stage3 stage3 (
-	.clk(clk),
-	.rst(rst),
+////////////////////////////////////////
+////////// PESSIMISTIC MODE ////////////
+////////////////////////////////////////
+generate
+if (PESSIMISTIC) begin
+	wire [1:0] PC_sel_stage2_point_5;
+	wire PC_en_stage2_point_5;
+	wire [2:0] A_sel_stage2_point_5;
+	wire A_en_stage2_point_5;
+	wire [2:0] X_sel_stage2_point_5;
+	wire X_en_stage2_point_5;
+	wire valid_stage2_point_5;
 	
-	//Values from stage2
-	.A_sel_in(A_sel_stage2),
-	.A_en_in(A_en_stage2),
-	.X_sel_in(X_sel_stage2),
-	.X_en_in(X_en_stage2),
-	.valid_in(valid_stage2),
+	idle_stage2_point_5 idle_stage (
+		.clk(clk),
+		.rst(rst),
+		
+		//Values from stage2
+		.A_sel_in(A_sel_stage2),
+		.A_en_in(A_en_stage2),
+		.X_sel_in(X_sel_stage2),
+		.X_en_in(X_en_stage2),
+		.valid_in(valid_stage2),
+		
+		//This stage's outputs
+		.A_sel(A_sel_stage2_point_5),
+		.A_en(A_en_stage2_point_5),
+		.X_sel(X_sel_stage2_point_5),
+		.X_en(X_en_stage2_point_5),
+		
+		.valid(valid_stage2_point_5)
+	);
+	writeback_stage3 stage3 (
+		.clk(clk),
+		.rst(rst),
+		
+		//Values from stage2_point_5
+		.A_sel_in(A_sel_stage2_point_5),
+		.A_en_in(A_en_stage2_point_5),
+		.X_sel_in(X_sel_stage2_point_5),
+		.X_en_in(X_en_stage2_point_5),
+		.valid_in(valid_stage2_point_5),
+		
+		//This stage's outputs
+		.A_sel(A_sel),
+		.A_en(A_en),
+		.X_sel(X_sel),
+		.X_en(X_en)
+	);
 	
-	//This stage's outputs
-	.A_sel(A_sel),
-	.A_en(A_en),
-	.X_sel(X_sel),
-	.X_en(X_en)
-);
+	assign A_en_stall_sig = (A_en_stage2) || (A_en_stage2_point_5) || A_en;
+	assign X_en_stall_sig = (X_en_stage2) || (X_en_stage2_point_5) || X_en;
+end
+///////////////////////////////////////
+////////// OPTIMISTIC MODE ////////////
+///////////////////////////////////////
+else begin
+	writeback_stage3 stage3 (
+		.clk(clk),
+		.rst(rst),
+		
+		//Values from stage2
+		.A_sel_in(A_sel_stage2),
+		.A_en_in(A_en_stage2),
+		.X_sel_in(X_sel_stage2),
+		.X_en_in(X_en_stage2),
+		.valid_in(valid_stage2),
+		
+		//This stage's outputs
+		.A_sel(A_sel),
+		.A_en(A_en),
+		.X_sel(X_sel),
+		.X_en(X_en)
+	);
+	assign A_en_stall_sig = (A_en_stage2) || A_en;
+	assign X_en_stall_sig = (X_en_stage2) || X_en;
+end
+endgenerate
+///////////////////////////////////////
+
 
 assign PC_sel = PC_sel_stage0 | PC_sel_stage2;
 assign PC_en = PC_en_stage0 | PC_en_stage2;

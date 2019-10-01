@@ -54,35 +54,50 @@ module parallel_packetfilts # (
 	input wire code_mem_wr_en
 );
 
-localparam SNOOP_INTF_TOTAL_BITS = SNOOP_FWD_ADDR_WIDTH + `PACKET_DATA_WIDTH + 1 + 1 + 1;
-wire [SNOOP_INTF_TOTAL_BITS-1:0] snoopsplit_tree [0:N + (N-1) -1];
+
+//Fiddly logic for snoop arbiting
+localparam padded_size = (N % 4 == 0) ? N : (N - (N%4) + 4);
+wire snooparb_readies[0:padded_size-1];
+wire snooparb_enables[0:padded_size-1];
+wire VM_enables[0:padded_size-1];
+reg VM_enables_saved[0:padded_size-1];
+
+genvar i;
+
+for (i = 0; i < padded_size; i = i+1) begin
+	//Initialize array to all zeroes
+	initial VM_enables_saved[i] <= 0;
+	always @(posedge axi_aclk) VM_enables_saved[i] <= VM_enables[i];
+end
+
+reg do_select = 1;
+always @(posedge axi_aclk) begin
+	do_select <= snooper_done || !ready_for_snooper;
+end
+
+for (i = 0; i < padded_size; i = i+1) begin
+	assign VM_enables[i] =
+		do_select ?
+			snooparb_enables[i]
+			: VM_enables_saved[i]
+	; 
+end
+
+//Declare internal wires for forward combine tree
 
 localparam FWD_INTF_TOTAL_BITS = SNOOP_FWD_ADDR_WIDTH + `PACKET_DATA_WIDTH + `PLEN_WIDTH + 1 + 1 + 1;
 wire [FWD_INTF_TOTAL_BITS-1:0] fwdcomb_tree [0:N + (N-1) -1];
 
-genvar i;
 
 //This for loop instantiates all the VMs.
 for (i = 0; i < N; i = i+1) begin : VMs
 	//I wish Verilog had VHDL's alias keyword...
-	`define SNOOP_LOCAL snoopsplit_tree[i]
 	`define FWD_LOCAL fwdcomb_tree[i]
-	
-	wire [SNOOP_FWD_ADDR_WIDTH-1:0] snooper_wr_addr_local;
-	wire [`PACKET_DATA_WIDTH-1:0] snooper_wr_data_local;
-	wire snooper_wr_en_local;
-	wire snooper_done_local;
-	wire ready_for_snooper_local;
 	
 	//Does direction matter?
 	//The order ABSOLUTELY MATTERS!!!!!!!
 	//I really wish Verilog would just be smart and realize which one is the driver,
 	//even if it is on the RHS of the =...
-	assign snooper_wr_addr_local = `SNOOP_LOCAL[SNOOP_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH];
-	assign snooper_wr_data_local = `SNOOP_LOCAL[SNOOP_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH];
-	assign snooper_wr_en_local = `SNOOP_LOCAL[2];
-	assign snooper_done_local = `SNOOP_LOCAL[1];
-	assign `SNOOP_LOCAL[0] = ready_for_snooper_local;
 	
 	wire [SNOOP_FWD_ADDR_WIDTH-1:0] forwarder_rd_addr_local;
 	wire [`PACKET_DATA_WIDTH-1:0] forwarder_rd_data_local;
@@ -112,11 +127,11 @@ for (i = 0; i < N; i = i+1) begin : VMs
 		.code_mem_wr_en(code_mem_wr_en), //TODO: figure this out
 		
 		//Interface to snooper
-		.snooper_wr_addr(snooper_wr_addr_local),
-		.snooper_wr_data(snooper_wr_data_local), //Hardcoded to 32 bits. TODO: change this to 64?
-		.snooper_wr_en(snooper_wr_en_local),
-		.snooper_done(snooper_done_local), //NOTE: this must be a 1-cycle pulse.
-		.ready_for_snooper(ready_for_snooper_local),
+		.snooper_wr_addr(snooper_wr_addr),
+		.snooper_wr_data(snooper_wr_data), //Hardcoded to 32 bits. TODO: change this to 64?
+		.snooper_wr_en(snooper_wr_en && VM_enables[i]),
+		.snooper_done(snooper_done && VM_enables[i]), //NOTE: this must be a 1-cycle pulse.
+		.ready_for_snooper(snooparb_readies[i]),
 		
 		//Interface to forwarder
 		.forwarder_rd_addr(forwarder_rd_addr_local), 
@@ -130,86 +145,28 @@ for (i = 0; i < N; i = i+1) begin : VMs
 end
 
 
-//This for loop instantiates all the snoopsplits in the tree.
-for (i = 0; i < N-1; i = i+1) begin: splittree
-	`define LOCAL snoopsplit_tree[N+i]
-	`define LEFT snoopsplit_tree[2*i]
-	`define RIGHT snoopsplit_tree[2*i + 1]
-	
-	wire [SNOOP_FWD_ADDR_WIDTH-1:0] snooper_wr_addr_local;
-	wire [`PACKET_DATA_WIDTH-1:0] snooper_wr_data_local;
-	wire snooper_wr_en_local;
-	wire snooper_done_local;
-	wire ready_for_snooper_local;
-	
-	assign snooper_wr_addr_local = `LOCAL[SNOOP_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH];
-	assign snooper_wr_data_local = `LOCAL[SNOOP_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH];
-	assign snooper_wr_en_local = `LOCAL[2];
-	assign snooper_done_local = `LOCAL[1];
-	assign `LOCAL[0] = ready_for_snooper_local;
-	
-	wire [SNOOP_FWD_ADDR_WIDTH-1:0] snooper_wr_addr_left;
-	wire [`PACKET_DATA_WIDTH-1:0] snooper_wr_data_left;
-	wire snooper_wr_en_left;
-	wire snooper_done_left;
-	wire ready_for_snooper_left;
-	
-	assign `LEFT[SNOOP_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH] = snooper_wr_addr_left;
-	assign `LEFT[SNOOP_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH] = snooper_wr_data_left;
-	assign `LEFT[2] = snooper_wr_en_left;
-	assign `LEFT[1] = snooper_done_left;
-	assign ready_for_snooper_left = `LEFT[0];
-
-	wire [SNOOP_FWD_ADDR_WIDTH-1:0] snooper_wr_addr_right;
-	wire [`PACKET_DATA_WIDTH-1:0] snooper_wr_data_right;
-	wire snooper_wr_en_right;
-	wire snooper_done_right;
-	wire ready_for_snooper_right;
-	
-	assign `RIGHT[SNOOP_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH] = snooper_wr_addr_right;
-	assign `RIGHT[SNOOP_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH] = snooper_wr_data_right;
-	assign `RIGHT[2] = snooper_wr_en_right;
-	assign `RIGHT[1] = snooper_done_right;
-	assign ready_for_snooper_right = `RIGHT[0];
-
-	snoopsplit # (
-		.DATA_WIDTH(`PACKET_DATA_WIDTH),
-		.ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)
-	) node (
-		.clk(axi_aclk),
-	
-		.wr_addr(snooper_wr_addr_local),
-		.wr_data(snooper_wr_data_local),
-		.mem_ready(ready_for_snooper_local),
-		.wr_en(snooper_wr_en_local),
-		.done(snooper_done_local),
-		
-		.wr_addr_left(snooper_wr_addr_left),
-		.wr_data_left(snooper_wr_data_left),
-		.mem_ready_left(ready_for_snooper_left),
-		.wr_en_left(snooper_wr_en_left),
-		.done_left(snooper_done_left),
-		.wr_addr_right(snooper_wr_addr_right),
-		.wr_data_right(snooper_wr_data_right),
-		.mem_ready_right(ready_for_snooper_right),
-		.wr_en_right(snooper_wr_en_right),
-		.done_right(snooper_done_right)
-		
-		//.choice(choice), //TODO: figure this out
+localparam num_arbs = padded_size/4;
+wire snoop_carries[0:num_arbs+1-1];
+assign snoop_carries[0] = 0;
+//This for loop instantiates all the snoop arbiters
+//TODO: Have a pessimized version which adds pipeline registers
+//(essentially becomes like an AXI Stream register slice)
+for (i = 0; i < num_arbs; i = i+1) begin: snooparbs
+	snoop_arbiter_5 arb5 (
+		.any_in(snoop_carries[i]),
+		.mem_ready_A(snooparb_readies[4*i+0]),
+		.mem_ready_B(snooparb_readies[4*i+1]),
+		.mem_ready_C(snooparb_readies[4*i+2]),
+		.mem_ready_D(snooparb_readies[4*i+3]),
+		.en_A(snooparb_enables[4*i+0]),
+		.en_B(snooparb_enables[4*i+1]),
+		.en_C(snooparb_enables[4*i+2]),
+		.en_D(snooparb_enables[4*i+3]),
+		.any_out(snoop_carries[i+1])
 	);
-	`undef LOCAL
-	`undef LEFT
-	`undef RIGHT
 end
 
-//This hooks up the module's snooper interface input to the root of the splitter tree
-`define SNOOPROOT snoopsplit_tree[N + (N-1) -1]
-assign `SNOOPROOT[SNOOP_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH] = snooper_wr_addr;
-assign `SNOOPROOT[SNOOP_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH] = snooper_wr_data;
-assign `SNOOPROOT[2] = snooper_wr_en;
-assign `SNOOPROOT[1] = snooper_done;
-assign ready_for_snooper = `SNOOPROOT[0];
-`undef SNOOPROOT
+assign ready_for_snooper = snoop_carries[num_arbs];
 
 //This for loop instantiates all the fwdcombines in the tree.
 for (i = 0; i < N-1; i = i+1) begin: fwdtree

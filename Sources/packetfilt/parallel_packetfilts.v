@@ -56,6 +56,9 @@ module parallel_packetfilts # (
 
 //Arbiter works on 4 wires at a time. Pad to nearest multiple of 4
 localparam padded_size = (N % 4 == 0) ? N : (N - (N%4) + 4);
+//Forwarder has the added onus of multiplexing the data and len lines
+localparam padded_size_for_muxing = (N % 3 == 0) ? N : (N - (N%3) + 3);
+localparam num_forwarder_enables = (padded_size_for_muxing > padded_size) ? padded_size_for_muxing: padded_size;
 
 //Wires for snoop arbiting
 wire snooper_readies[0:padded_size-1];
@@ -65,12 +68,10 @@ reg VM_snoop_enables_saved[0:padded_size-1];
 
 //Wires for forwarder arbiting
 wire forwarder_readies[0:padded_size-1];
-wire forwarder_enables[0:padded_size-1];
-wire VM_forwarder_enables[0:padded_size-1];
-reg VM_forwarder_enables_saved[0:padded_size-1];
+wire forwarder_enables[0:num_forwarder_enables-1];
+wire VM_forwarder_enables[0:num_forwarder_enables-1];
+reg VM_forwarder_enables_saved[0:num_forwarder_enables-1];
 
-//Forwarder has the added onus of multiplexing the data and len lines
-localparam padded_size_for_muxing = (N % 3 == 0) ? N : (N - (N%3) + 3);
 wire [`PACKET_DATA_WIDTH-1:0] forwarder_datas [0:padded_size_for_muxing-1];
 wire [`PLEN_WIDTH-1:0] forwarder_lens [0:padded_size_for_muxing-1];
 
@@ -80,6 +81,11 @@ for (i = 0; i < padded_size; i = i+1) begin
 	initial VM_snoop_enables_saved[i] <= 0;
 	always @(posedge axi_aclk) VM_snoop_enables_saved[i] <= VM_snoop_enables[i];
 	
+end
+
+//Terrible situation: because forwarder has two jobs, we need sometimes to have more
+//(dummy) enable signals
+for (i = 0; i < num_forwarder_enables; i = i+1) begin
 	initial VM_forwarder_enables_saved[i] <= 0;
 	always @(posedge axi_aclk) VM_forwarder_enables_saved[i] <= VM_forwarder_enables[i];
 end
@@ -98,14 +104,16 @@ for (i = 0; i < padded_size; i = i+1) begin
 			: VM_snoop_enables_saved[i]
 	; 
 	
+end
+
+
+for (i = 0; i < num_forwarder_enables; i = i+1) begin
 	assign VM_forwarder_enables[i] =
 		do_forwarder_select ?
 			forwarder_enables[i]
 			: VM_forwarder_enables_saved[i]
 	; 
 end
-
-
 
 //This for loop instantiates all the VMs.
 for (i = 0; i < N; i = i+1) begin : VMs
@@ -184,6 +192,11 @@ for (i = 0; i < num_arbs; i = i+1) begin: arbs
 		.any_out(forwarder_carries[i+1])
 	);
 end
+
+//This takes care of the case when we have a larger length padded for muxes
+for (i = padded_size; i < num_forwarder_enables; i = i+1) begin
+	assign forwarder_enables[i] = 0;
+end 
 
 assign ready_for_snooper = snoop_carries[num_arbs];
 assign ready_for_forwarder = forwarder_carries[num_arbs];

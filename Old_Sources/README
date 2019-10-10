@@ -1,0 +1,13 @@
+Not sure why I kept these, to be honest.
+
+I guess the one benefit would be that you could always swap out parallel_packetfilts
+for packetfilt and use the old version.
+
+The only reason to do this is because you've found a bug in the new version, and
+want a quick and dirty way to try the old version.
+
+The new version has:
+- Pipelining
+- Parametric number of parallel packet filters
+- Probably a bunch of small improvements here and there
+- A few extra places where pessimistic registers are inserted

@@ -19,6 +19,7 @@ Tests three snoop splitters arranged in a tree:
 
 `define DATA_WIDTH 64
 `define ADDR_WIDTH 10
+`define USE_PESSIMISTIC 0
 
 `define SHORT_DELAY repeat(5) @(posedge clk)
 `define LONG_DELAY repeat(10) @(posedge clk)
@@ -101,12 +102,18 @@ initial begin
 	done <= 1; //finished writing into A; B should be selected
 	`SYNC;
 	done <= 0;
+	if (`USE_PESSIMISTIC) begin
+		`SYNC; `SYNC;
+	end
 	mem_ready_A <= 0;
 	
 	`LONG_DELAY;
 	done <= 1; //finished writing into B; C should be selected
 	`SYNC;
 	done <= 0;
+	if (`USE_PESSIMISTIC) begin
+		`SYNC; `SYNC;
+	end
 	mem_ready_B <= 0;
 	
 	`SHORT_DELAY;
@@ -116,18 +123,27 @@ initial begin
 	done <= 1; //finished writing into C; A should be selected
 	`SYNC;
 	done <= 0;
+	if (`USE_PESSIMISTIC) begin
+		`SYNC; `SYNC;
+	end
 	mem_ready_C <= 0;
 	
 	`LONG_DELAY;
 	done <= 1; //finished writing into A; D should be selected
 	`SYNC;
 	done <= 0;
+	if (`USE_PESSIMISTIC) begin
+		`SYNC; `SYNC;
+	end
 	mem_ready_A <= 0;
 	
 	`LONG_DELAY;
 	done <= 1; //finished writing into D; everything should stop now
 	`SYNC;
 	done <= 0;
+	if (`USE_PESSIMISTIC) begin
+		`SYNC; `SYNC;
+	end
 	mem_ready_D <= 0;
 	
 	`SHORT_DELAY;
@@ -140,7 +156,8 @@ end
 
 snoopsplit # (
 	.DATA_WIDTH(`DATA_WIDTH),
-	.ADDR_WIDTH(`ADDR_WIDTH)
+	.ADDR_WIDTH(`ADDR_WIDTH),
+	.PESSIMISTIC(`USE_PESSIMISTIC)
 ) split0 (
 	.clk(clk),
 	//Interface to packet mem as the output of the snooper (or previous split stage)
@@ -169,7 +186,8 @@ snoopsplit # (
 
 snoopsplit # (
 	.DATA_WIDTH(`DATA_WIDTH),
-	.ADDR_WIDTH(`ADDR_WIDTH)
+	.ADDR_WIDTH(`ADDR_WIDTH),
+	.PESSIMISTIC(`USE_PESSIMISTIC)
 ) split1 (
 	.clk(clk),
 	//Interface to packet mem as the output of the snooper (or previous split stage)
@@ -198,7 +216,8 @@ snoopsplit # (
 
 snoopsplit # (
 	.DATA_WIDTH(`DATA_WIDTH),
-	.ADDR_WIDTH(`ADDR_WIDTH)
+	.ADDR_WIDTH(`ADDR_WIDTH),
+	.PESSIMISTIC(`USE_PESSIMISTIC)
 ) split2 (
 	.clk(clk),
 	//Interface to packet mem as the output of the snooper (or previous split stage)
@@ -224,4 +243,29 @@ snoopsplit # (
 	//the right order
 	.choice(choice_split2)
 );
+
+
+//Quick and dirsty way to test my new arbitration modules
+wire any_out;
+wire en_A;
+wire en_B;
+wire en_C;
+wire en_D;
+snoop_arbiter_5 arb5 (
+	.any_in(0),
+	.*
+);
+
+wire [3:0] alt_choice;
+reg [3:0] alt_choice_saved = 0;
+always @(posedge clk) alt_choice_saved <= alt_choice;
+
+reg do_select = 1;
+always @(posedge clk) do_select <= done || !any_out;
+
+assign alt_choice =
+	do_select ?
+		{en_A, en_B, en_C, en_D}
+		: alt_choice_saved
+;
 endmodule

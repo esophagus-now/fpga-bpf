@@ -1,7 +1,6 @@
 `timescale 1ns / 1ps
 /*
 axistream_forwarder.v
-
 A simple forwarder which reads a packet out from packetmem.v and send it along
 using the AXI Stream protocol. I don't make any claims that it satisfies every
 last stipulation in the official AXI Stream spec.
@@ -35,6 +34,7 @@ module axistream_forwarder # (parameter
 );
 
 wire ready_for_forwarder_internal;
+wire [`PLEN_WIDTH-1:0] len_to_forwarder_internal;
 ////////////////////////////////////////
 ////////// PESSIMISTIC MODE ////////////
 ////////////////////////////////////////
@@ -49,19 +49,23 @@ if (PESSIMISTIC) begin
 	reg ready_for_forwarder_r = 0;
 	always @(posedge clk) ready_for_forwarder_r <= ready_for_forwarder && !forwarder_done;
 	assign ready_for_forwarder_internal = ready_for_forwarder_r;
+	reg [`PLEN_WIDTH-1:0] len_to_forwarder_r;
+	always @(posedge clk) len_to_forwarder_r <= len_to_forwarder;
+	assign len_to_forwarder_internal = len_to_forwarder_r;
 end
 ///////////////////////////////////////
 ////////// OPTIMISTIC MODE ////////////
 ///////////////////////////////////////
 else begin
 	assign ready_for_forwarder_internal = ready_for_forwarder;
+	assign len_to_forwarder_internal = len_to_forwarder;
 end
 endgenerate
 ////////////////////////////////////////
 
 //Calculate max addr
 wire [ADDR_WIDTH-1:0] maxaddr;
-assign maxaddr = len_to_forwarder[`PLEN_WIDTH-1 -: ADDR_WIDTH];
+assign maxaddr = len_to_forwarder_internal[`PLEN_WIDTH-1 -: ADDR_WIDTH];
 
 assign TDATA = forwarder_rd_data; 
 

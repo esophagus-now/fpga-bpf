@@ -27,9 +27,10 @@ is what does this.
 
 module packetmem#(
     parameter PACKET_BYTE_ADDR_WIDTH = 12, // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
-    parameter SNOOP_FWD_ADDR_WIDTH = 9
+    parameter SNOOP_FWD_ADDR_WIDTH = 9,
     //this makes the data width of the snooper and fwd equal to:
     // 2^{3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH}
+    parameter PESSIMISTIC = 0
 )(
 	input wire clk,
 	input wire p3ctrl_rst,
@@ -102,9 +103,9 @@ p3_ctrl dispatcher (
 );
 
 //Generate ready lines for the three agents
-assign ready_for_snooper = sn_sel != 0;
-assign ready_for_cpu = cpu_sel != 0;
-assign ready_for_forwarder = fwd_sel != 0;
+assign ready_for_snooper = (sn_sel == 0) ? 0 : 1;
+assign ready_for_cpu = (cpu_sel == 0) ? 0 : 1;
+assign ready_for_forwarder = (fwd_sel == 0) ? 0 : 1;
 
 //Special thing to do for CPU: apply the read size adapter
 
@@ -113,7 +114,8 @@ wire [2*`PORT_DATA_WIDTH-1:0] adapted_mem_rd_data;
 
 read_size_adapter # (
 	.PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH),
-	.SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)
+	.SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH),
+	.PESSIMISTIC(PESSIMISTIC)
 ) cpu_adapter (
 	.clk(clk),
 	.byte_rd_addr(cpu_byte_rd_addr),

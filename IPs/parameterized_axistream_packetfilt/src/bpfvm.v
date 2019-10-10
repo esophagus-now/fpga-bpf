@@ -56,7 +56,7 @@ wire cpu_acc;
 wire cpu_rej;
 wire [`PLEN_WIDTH-1:0] len_to_cpu; //TODO: fix this terrible packet length logic
 	
-bpfcpu # (
+pipelined_bpfcpu # (
 	.CODE_ADDR_WIDTH(CODE_ADDR_WIDTH),
 	.PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH),
 	.SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH),
@@ -79,7 +79,8 @@ bpfcpu # (
 
 packetmem # (
 	.PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH),
-	.SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)
+	.SNOOP_FWD_ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH),
+	.PESSIMISTIC(PESSIMISTIC)
 ) packmem (
 	.clk(clk),
 	.p3ctrl_rst(rst),

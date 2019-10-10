@@ -20,7 +20,7 @@ module axistream_packetfilt # (
     //this makes the data width of the snooper and fwd equal to:
     // 2^{3 + PACKET_BYTE_ADDR_WIDTH - SNOOP_FWD_ADDR_WIDTH}
     parameter N = 5, //Number of parallel BPFVMs
-	parameter PESSIMISTIC = 0 //Turns on a few registers here and there to ease timing
+	parameter PESSIMISTIC = 1 //Turns on a few registers here and there to ease timing
 	//and will also add one cycle to most CPU instructions
 )(
 
@@ -69,7 +69,136 @@ module axistream_packetfilt # (
 	input wire snoop_TREADY, //Yes, this is an input. Remember that we're snooping!
 	input wire snoop_TLAST
 );
-    
+
+wire [`PACKET_DATA_WIDTH-1:0] snoop_TDATA_internal;
+wire snoop_TVALID_internal;
+wire snoop_TREADY_internal; 
+wire snoop_TLAST_internal;
+
+
+// User Ports         
+//(technically all of these wires are internal, but imagine that the regmap 
+//module was instantiated in another file) 
+wire status_strobe; // Strobe logic for register 'Status' (pulsed when the register is read from the bus)
+wire [15:0] status_num_packets_dropped; // Value of register 'Status'; field 'num_packets_dropped'
+wire control_strobe; // Strobe logic for register 'Control' (pulsed when the register is written from the bus)
+wire [0:0] control_start; // Value of register 'Control'; field 'start'
+wire inst_low_strobe; // Strobe logic for register 'inst_low' (pulsed when the register is written from the bus)
+wire [31:0] inst_low_value; // Value of register 'inst_low'; field 'value'
+wire inst_high_strobe; // Strobe logic for register 'inst_high' (pulsed when the register is written from the bus)
+wire [31:0] inst_high_value; // Value of register 'inst_high'; field 'value'
+
+wire status_strobe_internal; // Strobe logic for register 'Status' (pulsed when the register is read from the bus)
+wire [15:0] status_num_packets_dropped_internal; // Value of register 'Status'; field 'num_packets_dropped'
+wire control_strobe_internal; // Strobe logic for register 'Control' (pulsed when the register is written from the bus)
+wire [0:0] control_start_internal; // Value of register 'Control'; field 'start'
+wire inst_low_strobe_internal; //_internal Strobe logic for register 'inst_low' (pulsed when the register is written from the bus)
+wire [31:0] inst_low_value_internal; // Value of register 'inst_low'; field 'value'
+wire inst_high_strobe_internal; // Strobe logic for register 'inst_high' (pulsed when the register is written from the bus)
+wire [31:0] inst_high_value_internal; // Value of register 'inst_high'; field 'value'
+
+////////////////////////////////////////
+////////// PESSIMISTIC MODE ////////////
+////////////////////////////////////////
+generate
+if (PESSIMISTIC) begin
+	//Add delays to all top-level I/Os
+	
+	//Snooper interface is easy: just delay everything
+	//Note that I ended up adding two cycles of delay here
+	reg [`PACKET_DATA_WIDTH-1:0] snoop_TDATA_r = 0;
+	reg snoop_TVALID_r = 0;
+	reg snoop_TREADY_r = 0; //Yes, this is an input. Remember that we're snooping!
+	reg snoop_TLAST_r = 0;
+	always @(posedge axi_aclk) begin
+		snoop_TDATA_r <= snoop_TDATA;
+		snoop_TVALID_r <= snoop_TVALID;
+		snoop_TREADY_r <= snoop_TREADY;
+		snoop_TLAST_r <= snoop_TLAST;
+	end
+	
+	assign snoop_TDATA_internal = snoop_TDATA_r;
+	assign snoop_TVALID_internal = snoop_TVALID_r;
+	assign snoop_TREADY_internal = snoop_TREADY_r;
+	assign snoop_TLAST_internal = snoop_TLAST_r;
+	
+	//regmap interface is trickier. This is a quick and dirty hack which just delays 
+	//all the outputs of regmap (before they are input into regstrb2mem)
+	//Based on my knowledge of the actual FPGA I'm using (which has the PS very far from
+	//the CMAC I'm snooping on) I decided to register these for two cycles
+	reg status_strobe_r = 0; // Strobe logic for register 'Status' (pulsed when the register is read from the bus)
+	reg [15:0] status_num_packets_dropped_r = 0; // Value of register 'Status'; field 'num_packets_dropped'
+	reg control_strobe_r = 0; // Strobe logic for register 'Control' (pulsed when the register is written from the bus)
+	reg [0:0] control_start_r = 0; // Value of register 'Control'; field 'start'
+	reg inst_low_strobe_r = 0; // Strobe logic for register 'inst_low' (pulsed when the register is written from the bus)
+	reg [31:0] inst_low_value_r = 0; // Value of register 'inst_low'; field 'value'
+	reg inst_high_strobe_r = 0; // Strobe logic for register 'inst_high' (pulsed when the register is written from the bus)
+	reg [31:0] inst_high_value_r = 0; // Value of register 'inst_high'; field 'value'
+	
+	reg status_strobe_r2 = 0; // Strobe logic for register 'Status' (pulsed when the register is read from the bus)
+	reg [15:0] status_num_packets_dropped_r2 = 0; // Value of register 'Status'; field 'num_packets_dropped'
+	reg control_strobe_r2 = 0; // Strobe logic for register 'Control' (pulsed when the register is written from the bus)
+	reg [0:0] control_start_r2 = 0; // Value of register 'Control'; field 'start'
+	reg inst_low_strobe_r2 = 0; // Strobe logic for register 'inst_low' (pulsed when the register is written from the bus)
+	reg [31:0] inst_low_value_r2 = 0; // Value of register 'inst_low'; field 'value'
+	reg inst_high_strobe_r2 = 0; // Strobe logic for register 'inst_high' (pulsed when the register is written from the bus)
+	reg [31:0] inst_high_value_r2 = 0; // Value of register 'inst_high'; field 'value'
+	
+	always @(posedge axi_aclk) begin
+		status_strobe_r <= status_strobe; // Strobe logic for register 'Status' (pulsed when the register is read from the bus)
+		status_num_packets_dropped_r = status_num_packets_dropped; // Value of register 'Status'; field 'num_packets_dropped'
+		control_strobe_r <= control_strobe; // Strobe logic for register 'Control' (pulsed when the register is written from the bus)
+		control_start_r <= control_start; // Value of register 'Control'; field 'start'
+		inst_low_strobe_r <= inst_low_strobe; // Strobe logic for register 'inst_low' (pulsed when the register is written from the bus)
+		inst_low_value_r <= inst_low_value; // Value of register 'inst_low'; field 'value'
+		inst_high_strobe_r <= inst_high_strobe; // Strobe logic for register 'inst_high' (pulsed when the register is written from the bus)
+		inst_high_value_r <= inst_high_value; // Value of register 'inst_high'; field 'value'
+		
+		status_strobe_r2 <= status_strobe_r; // Strobe logic for register 'Status' (pulsed when the register is read from the bus)
+		status_num_packets_dropped_r2 = status_num_packets_dropped_r; // Value of register 'Status'; field 'num_packets_dropped'
+		control_strobe_r2 <= control_strobe_r; // Strobe logic for register 'Control' (pulsed when the register is written from the bus)
+		control_start_r2 <= control_start_r; // Value of register 'Control'; field 'start'
+		inst_low_strobe_r2 <= inst_low_strobe_r; // Strobe logic for register 'inst_low' (pulsed when the register is written from the bus)
+		inst_low_value_r2 <= inst_low_value_r; // Value of register 'inst_low'; field 'value'
+		inst_high_strobe_r2 <= inst_high_strobe_r; // Strobe logic for register 'inst_high' (pulsed when the register is written from the bus)
+		inst_high_value_r2 <= inst_high_value_r; // Value of register 'inst_high'; field 'value'
+	end
+	
+	assign status_strobe_internal = status_strobe_r2; 
+	assign status_num_packets_dropped_internal = status_num_packets_dropped_r2; 
+	assign control_strobe_internal = control_strobe_r2; 
+	assign control_start_internal = control_start_r2; 
+	assign inst_low_strobe_internal = inst_low_strobe_r2;
+	assign inst_low_value_internal = inst_low_value_r2; 
+	assign inst_high_strobe_internal = inst_high_strobe_r2; 
+	assign inst_high_value_internal = inst_high_value_r2; 
+	
+	//Forwarder is the trickiest, because we actually need an AXI Stream register slice
+	//i.e. do all the crazy thinking for "pipelining"
+	//For now, just use the IP in the block diagram
+end
+///////////////////////////////////////
+////////// OPTIMISTIC MODE ////////////
+///////////////////////////////////////
+else begin
+	assign snoop_TDATA_internal = snoop_TDATA;
+	assign snoop_TVALID_internal = snoop_TVALID;
+	assign snoop_TREADY_internal = snoop_TREADY;
+	assign snoop_TLAST_internal = snoop_TLAST;
+	
+	assign status_strobe_internal = status_strobe; 
+	assign status_num_packets_dropped_internal = status_num_packets_dropped; 
+	assign control_strobe_internal = control_strobe; 
+	assign control_start_internal = control_start; 
+	assign inst_low_strobe_internal = inst_low_strobe;
+	assign inst_low_value_internal = inst_low_value; 
+	assign inst_high_strobe_internal = inst_high_strobe; 
+	assign inst_high_value_internal = inst_high_value; 
+end
+endgenerate
+///////////////////////////////////////
+
+
 //Interface to snooper
 wire [SNOOP_FWD_ADDR_WIDTH-1:0] snooper_wr_addr;
 wire [`PACKET_DATA_WIDTH-1:0] snooper_wr_data; 
@@ -84,16 +213,6 @@ wire forwarder_rd_en;
 wire forwarder_done; //NOTE: this must be a 1-cycle pulse.
 wire ready_for_forwarder;
 wire [`PLEN_WIDTH-1:0] len_to_forwarder;
-
-// User Ports          
-wire status_strobe; // Strobe logic for register 'Status' (pulsed when the register is read from the bus)
-wire [15:0] status_num_packets_dropped; // Value of register 'Status'; field 'num_packets_dropped'
-wire control_strobe; // Strobe logic for register 'Control' (pulsed when the register is written from the bus)
-wire [0:0] control_start; // Value of register 'Control'; field 'start'
-wire inst_low_strobe; // Strobe logic for register 'inst_low' (pulsed when the register is written from the bus)
-wire [31:0] inst_low_value; // Value of register 'inst_low'; field 'value'
-wire inst_high_strobe; // Strobe logic for register 'inst_high' (pulsed when the register is written from the bus)
-wire [31:0] inst_high_value; // Value of register 'inst_high'; field 'value'
 
 //Interface to codemem
 wire [CODE_ADDR_WIDTH-1:0] code_mem_wr_addr;
@@ -189,12 +308,12 @@ regstrb2mem read_inst_regs (
 	.code_mem_wr_en(code_mem_wr_en),
 	
 	//Interface from regs
-	.inst_high_value(inst_high_value),
-	.inst_high_strobe(inst_high_strobe),
-	.inst_low_value(inst_low_value),
-	.inst_low_strobe(inst_low_strobe),
+	.inst_high_value(inst_high_value_internal),
+	.inst_high_strobe(inst_high_strobe_internal),
+	.inst_low_value(inst_low_value_internal),
+	.inst_low_strobe(inst_low_strobe_internal),
 	
-	.control_start(control_start)
+	.control_start(control_start_internal)
 );
 
 axistream_snooper # (
@@ -205,10 +324,10 @@ axistream_snooper # (
 	.clk(axi_aclk),
 	
 	//AXI Stream interface
-	.TDATA(snoop_TDATA),
-	.TVALID(snoop_TVALID),
-	.TREADY(snoop_TREADY), //Yes, this is an input. Remember that we're snooping!
-	.TLAST(snoop_TLAST),
+	.TDATA(snoop_TDATA_internal),
+	.TVALID(snoop_TVALID_internal),
+	.TREADY(snoop_TREADY_internal), //Yes, this is an input. Remember that we're snooping!
+	.TLAST(snoop_TLAST_internal),
 	
 	//Interface to packet mem
 	.wr_addr(snooper_wr_addr),

@@ -103,9 +103,9 @@ p3_ctrl dispatcher (
 );
 
 //Generate ready lines for the three agents
-assign ready_for_snooper = sn_sel != 0;
-assign ready_for_cpu = cpu_sel != 0;
-assign ready_for_forwarder = fwd_sel != 0;
+assign ready_for_snooper = (sn_sel == 0) ? 0 : 1;
+assign ready_for_cpu = (cpu_sel == 0) ? 0 : 1;
+assign ready_for_forwarder = (fwd_sel == 0) ? 0 : 1;
 
 //Special thing to do for CPU: apply the read size adapter
 

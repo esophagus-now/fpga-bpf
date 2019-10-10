@@ -54,50 +54,69 @@ module parallel_packetfilts # (
 	input wire code_mem_wr_en
 );
 
-localparam SNOOP_INTF_TOTAL_BITS = SNOOP_FWD_ADDR_WIDTH + `PACKET_DATA_WIDTH + 1 + 1 + 1;
-wire [SNOOP_INTF_TOTAL_BITS-1:0] snoopsplit_tree [0:N + (N-1) -1];
+//Arbiter works on 4 wires at a time. Pad to nearest multiple of 4
+localparam padded_size = (N % 4 == 0) ? N : (N - (N%4) + 4);
+//Forwarder has the added onus of multiplexing the data and len lines
+localparam padded_size_for_muxing = (N % 3 == 0) ? N : (N - (N%3) + 3);
+localparam num_forwarder_enables = (padded_size_for_muxing > padded_size) ? padded_size_for_muxing: padded_size;
 
-localparam FWD_INTF_TOTAL_BITS = SNOOP_FWD_ADDR_WIDTH + `PACKET_DATA_WIDTH + `PLEN_WIDTH + 1 + 1 + 1;
-wire [FWD_INTF_TOTAL_BITS-1:0] fwdcomb_tree [0:N + (N-1) -1];
+//Wires for snoop arbiting
+wire snooper_readies[0:padded_size-1];
+wire snooper_enables[0:padded_size-1];
+wire VM_snoop_enables[0:padded_size-1];
+reg VM_snoop_enables_saved[0:padded_size-1];
+
+//Wires for forwarder arbiting
+wire forwarder_readies[0:padded_size-1];
+wire forwarder_enables[0:num_forwarder_enables-1];
+wire VM_forwarder_enables[0:num_forwarder_enables-1];
+reg VM_forwarder_enables_saved[0:num_forwarder_enables-1];
+
+wire [`PACKET_DATA_WIDTH-1:0] forwarder_datas [0:padded_size_for_muxing-1];
+wire [`PLEN_WIDTH-1:0] forwarder_lens [0:padded_size_for_muxing-1];
 
 genvar i;
 
+for (i = 0; i < padded_size; i = i+1) begin
+	initial VM_snoop_enables_saved[i] <= 0;
+	always @(posedge axi_aclk) VM_snoop_enables_saved[i] <= VM_snoop_enables[i];
+	
+end
+
+//Terrible situation: because forwarder has two jobs, we need sometimes to have more
+//(dummy) enable signals
+for (i = 0; i < num_forwarder_enables; i = i+1) begin
+	initial VM_forwarder_enables_saved[i] <= 0;
+	always @(posedge axi_aclk) VM_forwarder_enables_saved[i] <= VM_forwarder_enables[i];
+end
+
+reg do_snoop_select = 1;
+reg do_forwarder_select = 1;
+always @(posedge axi_aclk) begin
+	do_snoop_select <= snooper_done || !ready_for_snooper;
+	do_forwarder_select <= forwarder_done || !ready_for_forwarder;
+end
+
+for (i = 0; i < padded_size; i = i+1) begin
+	assign VM_snoop_enables[i] =
+		do_snoop_select ?
+			snooper_enables[i]
+			: VM_snoop_enables_saved[i]
+	; 
+	
+end
+
+
+for (i = 0; i < num_forwarder_enables; i = i+1) begin
+	assign VM_forwarder_enables[i] =
+		do_forwarder_select ?
+			forwarder_enables[i]
+			: VM_forwarder_enables_saved[i]
+	; 
+end
+
 //This for loop instantiates all the VMs.
 for (i = 0; i < N; i = i+1) begin : VMs
-	//I wish Verilog had VHDL's alias keyword...
-	`define SNOOP_LOCAL snoopsplit_tree[i]
-	`define FWD_LOCAL fwdcomb_tree[i]
-	
-	wire [SNOOP_FWD_ADDR_WIDTH-1:0] snooper_wr_addr_local;
-	wire [`PACKET_DATA_WIDTH-1:0] snooper_wr_data_local;
-	wire snooper_wr_en_local;
-	wire snooper_done_local;
-	wire ready_for_snooper_local;
-	
-	//Does direction matter?
-	//The order ABSOLUTELY MATTERS!!!!!!!
-	//I really wish Verilog would just be smart and realize which one is the driver,
-	//even if it is on the RHS of the =...
-	assign snooper_wr_addr_local = `SNOOP_LOCAL[SNOOP_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH];
-	assign snooper_wr_data_local = `SNOOP_LOCAL[SNOOP_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH];
-	assign snooper_wr_en_local = `SNOOP_LOCAL[2];
-	assign snooper_done_local = `SNOOP_LOCAL[1];
-	assign `SNOOP_LOCAL[0] = ready_for_snooper_local;
-	
-	wire [SNOOP_FWD_ADDR_WIDTH-1:0] forwarder_rd_addr_local;
-	wire [`PACKET_DATA_WIDTH-1:0] forwarder_rd_data_local;
-	wire [`PLEN_WIDTH-1:0] len_to_forwarder_local;
-	wire forwarder_rd_en_local;
-	wire forwarder_done_local; //NOTE: this must be a 1-cycle pulse.
-	wire ready_for_forwarder_local;
-	
-	assign forwarder_rd_addr_local = `FWD_LOCAL[FWD_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH];
-	assign `FWD_LOCAL[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH] = forwarder_rd_data_local;
-	assign `FWD_LOCAL[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH - `PACKET_DATA_WIDTH -: `PLEN_WIDTH] = len_to_forwarder_local;
-	assign forwarder_rd_en_local = `FWD_LOCAL[2];
-	assign forwarder_done_local = `FWD_LOCAL[1];
-	assign `FWD_LOCAL[0] = ready_for_forwarder_local;
-	
 	bpfvm # (
     .CODE_ADDR_WIDTH(CODE_ADDR_WIDTH), // codemem depth = 2^CODE_ADDR_WIDTH
     .PACKET_BYTE_ADDR_WIDTH(PACKET_BYTE_ADDR_WIDTH), // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
@@ -107,199 +126,130 @@ for (i = 0; i < N; i = i+1) begin : VMs
 		.rst(rst), //Reset should be high if resetn is LOW or if start is LOW 
 		.clk(axi_aclk),
 		//Interface to an external module which will fill codemem
-		.code_mem_wr_addr(code_mem_wr_addr), //TODO: figure this out
-		.code_mem_wr_data(code_mem_wr_data), //TODO: figure this out
-		.code_mem_wr_en(code_mem_wr_en), //TODO: figure this out
+		.code_mem_wr_addr(code_mem_wr_addr), 
+		.code_mem_wr_data(code_mem_wr_data), 
+		.code_mem_wr_en(code_mem_wr_en), 
 		
 		//Interface to snooper
-		.snooper_wr_addr(snooper_wr_addr_local),
-		.snooper_wr_data(snooper_wr_data_local), //Hardcoded to 32 bits. TODO: change this to 64?
-		.snooper_wr_en(snooper_wr_en_local),
-		.snooper_done(snooper_done_local), //NOTE: this must be a 1-cycle pulse.
-		.ready_for_snooper(ready_for_snooper_local),
+		.snooper_wr_addr(snooper_wr_addr),
+		.snooper_wr_data(snooper_wr_data), 
+		.snooper_wr_en(snooper_wr_en && VM_snoop_enables[i]),
+		.snooper_done(snooper_done && VM_snoop_enables[i]), 
+		.ready_for_snooper(snooper_readies[i]),
 		
 		//Interface to forwarder
-		.forwarder_rd_addr(forwarder_rd_addr_local), 
-		.forwarder_rd_data(forwarder_rd_data_local), 
-		.forwarder_rd_en(forwarder_rd_en_local), 
-		.forwarder_done(forwarder_done_local), //NOTE: this must be a 1-cycle pulse.
-		.ready_for_forwarder(ready_for_forwarder_local), 
-		.len_to_forwarder(len_to_forwarder_local) 
+		.forwarder_rd_addr(forwarder_rd_addr), 
+		.forwarder_rd_data(forwarder_datas[i]), 
+		.forwarder_rd_en(forwarder_rd_en && VM_forwarder_enables[i]), 
+		.forwarder_done(forwarder_done && VM_forwarder_enables[i]), 
+		.ready_for_forwarder(forwarder_readies[i]), 
+		.len_to_forwarder(forwarder_lens[i]) 
 	);
-	`undef LOCAL
 end
 
-
-//This for loop instantiates all the snoopsplits in the tree.
-for (i = 0; i < N-1; i = i+1) begin: splittree
-	`define LOCAL snoopsplit_tree[N+i]
-	`define LEFT snoopsplit_tree[2*i]
-	`define RIGHT snoopsplit_tree[2*i + 1]
-	
-	wire [SNOOP_FWD_ADDR_WIDTH-1:0] snooper_wr_addr_local;
-	wire [`PACKET_DATA_WIDTH-1:0] snooper_wr_data_local;
-	wire snooper_wr_en_local;
-	wire snooper_done_local;
-	wire ready_for_snooper_local;
-	
-	assign snooper_wr_addr_local = `LOCAL[SNOOP_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH];
-	assign snooper_wr_data_local = `LOCAL[SNOOP_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH];
-	assign snooper_wr_en_local = `LOCAL[2];
-	assign snooper_done_local = `LOCAL[1];
-	assign `LOCAL[0] = ready_for_snooper_local;
-	
-	wire [SNOOP_FWD_ADDR_WIDTH-1:0] snooper_wr_addr_left;
-	wire [`PACKET_DATA_WIDTH-1:0] snooper_wr_data_left;
-	wire snooper_wr_en_left;
-	wire snooper_done_left;
-	wire ready_for_snooper_left;
-	
-	assign `LEFT[SNOOP_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH] = snooper_wr_addr_left;
-	assign `LEFT[SNOOP_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH] = snooper_wr_data_left;
-	assign `LEFT[2] = snooper_wr_en_left;
-	assign `LEFT[1] = snooper_done_left;
-	assign ready_for_snooper_left = `LEFT[0];
-
-	wire [SNOOP_FWD_ADDR_WIDTH-1:0] snooper_wr_addr_right;
-	wire [`PACKET_DATA_WIDTH-1:0] snooper_wr_data_right;
-	wire snooper_wr_en_right;
-	wire snooper_done_right;
-	wire ready_for_snooper_right;
-	
-	assign `RIGHT[SNOOP_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH] = snooper_wr_addr_right;
-	assign `RIGHT[SNOOP_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH] = snooper_wr_data_right;
-	assign `RIGHT[2] = snooper_wr_en_right;
-	assign `RIGHT[1] = snooper_done_right;
-	assign ready_for_snooper_right = `RIGHT[0];
-
-	snoopsplit # (
-		.DATA_WIDTH(`PACKET_DATA_WIDTH),
-		.ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)
-	) node (
-		.clk(axi_aclk),
-	
-		.wr_addr(snooper_wr_addr_local),
-		.wr_data(snooper_wr_data_local),
-		.mem_ready(ready_for_snooper_local),
-		.wr_en(snooper_wr_en_local),
-		.done(snooper_done_local),
-		
-		.wr_addr_left(snooper_wr_addr_left),
-		.wr_data_left(snooper_wr_data_left),
-		.mem_ready_left(ready_for_snooper_left),
-		.wr_en_left(snooper_wr_en_left),
-		.done_left(snooper_done_left),
-		.wr_addr_right(snooper_wr_addr_right),
-		.wr_data_right(snooper_wr_data_right),
-		.mem_ready_right(ready_for_snooper_right),
-		.wr_en_right(snooper_wr_en_right),
-		.done_right(snooper_done_right)
-		
-		//.choice(choice), //TODO: figure this out
-	);
-	`undef LOCAL
-	`undef LEFT
-	`undef RIGHT
+//Fill rest of padding with zeroes
+//I'm pretty sure Vivado can optimize all these away 
+for (i = N; i < padded_size; i = i+1) begin
+	assign snooper_readies[i] = 0;
+	assign forwarder_readies[i] = 0;
+end
+for (i = N; i < padded_size_for_muxing; i = i+1) begin
+	assign forwarder_datas[i] = 0;
+	assign forwarder_lens[i] = 0;
 end
 
-//This hooks up the module's snooper interface input to the root of the splitter tree
-`define SNOOPROOT snoopsplit_tree[N + (N-1) -1]
-assign `SNOOPROOT[SNOOP_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH] = snooper_wr_addr;
-assign `SNOOPROOT[SNOOP_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH] = snooper_wr_data;
-assign `SNOOPROOT[2] = snooper_wr_en;
-assign `SNOOPROOT[1] = snooper_done;
-assign ready_for_snooper = `SNOOPROOT[0];
-`undef SNOOPROOT
+localparam num_arbs = padded_size/4;
+wire snoop_carries[0:num_arbs+1-1];
+assign snoop_carries[0] = 0;
+wire forwarder_carries[0:num_arbs+1-1];
+assign forwarder_carries[0] = 0;
 
-//This for loop instantiates all the fwdcombines in the tree.
-for (i = 0; i < N-1; i = i+1) begin: fwdtree
-	`define LOCAL fwdcomb_tree[N+i]
-	`define LEFT fwdcomb_tree[2*i]
-	`define RIGHT fwdcomb_tree[2*i + 1]
-	
-	wire [SNOOP_FWD_ADDR_WIDTH-1:0] forwarder_rd_addr_local;
-	wire [`PACKET_DATA_WIDTH-1:0] forwarder_rd_data_local;
-	wire [`PLEN_WIDTH-1:0] len_to_forwarder_local;
-	wire forwarder_rd_en_local;
-	wire forwarder_done_local; //NOTE: this must be a 1-cycle pulse.
-	wire ready_for_forwarder_local;
-	
-	assign forwarder_rd_addr_local = `LOCAL[FWD_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH];
-	assign `LOCAL[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH] = forwarder_rd_data_local;
-	assign `LOCAL[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH - `PACKET_DATA_WIDTH -: `PLEN_WIDTH] = len_to_forwarder_local;
-	assign forwarder_rd_en_local = `LOCAL[2];
-	assign forwarder_done_local = `LOCAL[1];
-	assign `LOCAL[0] = ready_for_forwarder_local;
-	
-	wire [SNOOP_FWD_ADDR_WIDTH-1:0] forwarder_rd_addr_left;
-	wire [`PACKET_DATA_WIDTH-1:0] forwarder_rd_data_left;
-	wire [`PLEN_WIDTH-1:0] len_to_forwarder_left;
-	wire forwarder_rd_en_left;
-	wire forwarder_done_left; //NOTE: this must be a 1-cycle pulse.
-	wire ready_for_forwarder_left;
-	
-	assign `LEFT[FWD_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH] = forwarder_rd_addr_left;
-	assign forwarder_rd_data_left = `LEFT[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH];
-	assign len_to_forwarder_left = `LEFT[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH - `PACKET_DATA_WIDTH -: `PLEN_WIDTH];
-	assign `LEFT[2] = forwarder_rd_en_left;
-	assign `LEFT[1] = forwarder_done_left;
-	assign ready_for_forwarder_left = `LEFT[0];
-	
-	wire [SNOOP_FWD_ADDR_WIDTH-1:0] forwarder_rd_addr_right;
-	wire [`PACKET_DATA_WIDTH-1:0] forwarder_rd_data_right;
-	wire [`PLEN_WIDTH-1:0] len_to_forwarder_right;
-	wire forwarder_rd_en_right;
-	wire forwarder_done_right; //NOTE: this must be a 1-cycle pulse.
-	wire ready_for_forwarder_right;
-	
-	assign `RIGHT[FWD_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH] = forwarder_rd_addr_right;
-	assign forwarder_rd_data_right = `RIGHT[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH];
-	assign len_to_forwarder_right = `RIGHT[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH - `PACKET_DATA_WIDTH -: `PLEN_WIDTH];
-	assign `RIGHT[2] = forwarder_rd_en_right;
-	assign `RIGHT[1] = forwarder_done_right;
-	assign ready_for_forwarder_right = `RIGHT[0];
-
-	fwdcombine # (
-		.DATA_WIDTH(`PACKET_DATA_WIDTH),
-		.ADDR_WIDTH(SNOOP_FWD_ADDR_WIDTH)
-	) node (
-		.clk(axi_aclk),
-		
-		.forwarder_rd_addr_left(forwarder_rd_addr_left),
-		.forwarder_rd_data_left(forwarder_rd_data_left),
-		.forwarder_rd_en_left(forwarder_rd_en_left),
-		.forwarder_done_left(forwarder_done_left), //NOTE: this must be a 1-cycle pulse.
-		.ready_for_forwarder_left(ready_for_forwarder_left),
-		.len_to_forwarder_left(len_to_forwarder_left),
-		.forwarder_rd_addr_right(forwarder_rd_addr_right),
-		.forwarder_rd_data_right(forwarder_rd_data_right),
-		.forwarder_rd_en_right(forwarder_rd_en_right),
-		.forwarder_done_right(forwarder_done_right), //NOTE: this must be a 1-cycle pulse.
-		.ready_for_forwarder_right(ready_for_forwarder_right),
-		.len_to_forwarder_right(len_to_forwarder_right),
-		
-		.forwarder_rd_addr(forwarder_rd_addr_local),
-		.forwarder_rd_data(forwarder_rd_data_local),
-		.forwarder_rd_en(forwarder_rd_en_local),
-		.forwarder_done(forwarder_done_local), //NOTE: this must be a 1-cycle pulse.
-		.ready_for_forwarder(ready_for_forwarder_local),
-		.len_to_forwarder(len_to_forwarder_local)
+//This for loop instantiates all the snoop and forwarder arbiters
+//TODO: Have a pessimized version which adds pipeline registers
+//(essentially becomes like an AXI Stream register slice)
+for (i = 0; i < num_arbs; i = i+1) begin: arbs
+	arbiter_4 snoop_arb (
+		.any_in(snoop_carries[i]),
+		.mem_ready_A(snooper_readies[4*i+0]),
+		.mem_ready_B(snooper_readies[4*i+1]),
+		.mem_ready_C(snooper_readies[4*i+2]),
+		.mem_ready_D(snooper_readies[4*i+3]),
+		.en_A(snooper_enables[4*i+0]),
+		.en_B(snooper_enables[4*i+1]),
+		.en_C(snooper_enables[4*i+2]),
+		.en_D(snooper_enables[4*i+3]),
+		.any_out(snoop_carries[i+1])
 	);
-	
-	`undef LOCAL
-	`undef LEFT
-	`undef RIGHT
+	arbiter_4 fwd_arb (
+		.any_in(forwarder_carries[i]),
+		.mem_ready_A(forwarder_readies[4*i+0]),
+		.mem_ready_B(forwarder_readies[4*i+1]),
+		.mem_ready_C(forwarder_readies[4*i+2]),
+		.mem_ready_D(forwarder_readies[4*i+3]),
+		.en_A(forwarder_enables[4*i+0]),
+		.en_B(forwarder_enables[4*i+1]),
+		.en_C(forwarder_enables[4*i+2]),
+		.en_D(forwarder_enables[4*i+3]),
+		.any_out(forwarder_carries[i+1])
+	);
 end
 
-//This hooks up the module's forwarder interface input to the root of the forwarder tree
-`define FWDROOT fwdcomb_tree[N + (N-1) -1]
-assign `FWDROOT[FWD_INTF_TOTAL_BITS-1 -: SNOOP_FWD_ADDR_WIDTH] = forwarder_rd_addr;
-assign forwarder_rd_data = `FWDROOT[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH -: `PACKET_DATA_WIDTH];
-//assign forwarder_rd_data = 'hDEB06;
-assign len_to_forwarder = `FWDROOT[FWD_INTF_TOTAL_BITS-1 - SNOOP_FWD_ADDR_WIDTH - `PACKET_DATA_WIDTH -: `PLEN_WIDTH];
-assign `FWDROOT[2] = forwarder_rd_en;
-assign `FWDROOT[1] = forwarder_done;
-assign ready_for_forwarder = `FWDROOT[0];
-`undef FWDROOT
+//This takes care of the case when we have a larger length padded for muxes
+for (i = padded_size; i < num_forwarder_enables; i = i+1) begin
+	assign forwarder_enables[i] = 0;
+end 
+
+assign ready_for_snooper = snoop_carries[num_arbs];
+assign ready_for_forwarder = forwarder_carries[num_arbs];
+
+//Last thing we need is the hideous logic for "mutiplexing" the read data and
+//len_to_forwarder_lines using the one-hot enable signals from the arbiters. I
+//took special care to keep the combinational path short.
+
+localparam num_muxes = padded_size_for_muxing/3;
+
+wire [0:num_muxes-1] muxed_data [`PACKET_DATA_WIDTH-1:0];
+wire [0:num_muxes-1] muxed_lens [`PLEN_WIDTH-1:0];
+wire [`PACKET_DATA_WIDTH-1:0] reduced_data; //We'll see how smartly Vivado synthesizes Verilog's OR reduction operator
+wire [`PLEN_WIDTH-1:0] reduced_len;
+
+for (i = 0; i < num_muxes; i = i+1) begin: muxes
+	genvar j;
+	for (j = 0; j < `PACKET_DATA_WIDTH; j = j+1) begin: datamuxes
+		one_hot_mux_3 bitmux (
+			.data_A(forwarder_datas[3*i+0][j]),
+			.en_A(VM_forwarder_enables[3*i+0]), //TODO: rename this signal to something less confusing
+			
+			.data_B(forwarder_datas[3*i+1][j]),
+			.en_B(VM_forwarder_enables[3*i+1]), //TODO: rename this signal to something less confusing
+			
+			.data_C(forwarder_datas[3*i+2][j]),
+			.en_C(VM_forwarder_enables[3*i+2]), //TODO: rename this signal to something less confusing
+			
+			.Q(muxed_data[j][i])
+		);
+	end
+	for (j = 0; j < `PLEN_WIDTH; j = j+1) begin: lenmuxes
+		one_hot_mux_3 bitmux (
+			.data_A(forwarder_lens[3*i+0][j]),
+			.en_A(VM_forwarder_enables[3*i+0]), //TODO: rename this signal to something less confusing
+			
+			.data_B(forwarder_lens[3*i+1][j]),
+			.en_B(VM_forwarder_enables[3*i+1]), //TODO: rename this signal to something less confusing
+			
+			.data_C(forwarder_lens[3*i+2][j]),
+			.en_C(VM_forwarder_enables[3*i+2]), //TODO: rename this signal to something less confusing
+			
+			.Q(muxed_lens[j][i])
+		);
+	end
+end
+
+for (i = 0; i < `PACKET_DATA_WIDTH; i = i+1) begin
+	assign forwarder_rd_data[i] = |muxed_data[i]; //I hope this works out!
+end
+for (i = 0; i < `PLEN_WIDTH; i = i+1) begin
+	assign len_to_forwarder[i] = |muxed_lens[i]; //I hope this works out!
+end
 
 endmodule

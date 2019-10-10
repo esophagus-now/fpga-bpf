@@ -151,6 +151,7 @@ end
 //I'm pretty sure Vivado can optimize all these away 
 for (i = N; i < padded_size; i = i+1) begin
 	assign snooper_readies[i] = 0;
+	assign forwarder_readies[i] = 0;
 end
 for (i = N; i < padded_size_for_muxing; i = i+1) begin
 	assign forwarder_datas[i] = 0;

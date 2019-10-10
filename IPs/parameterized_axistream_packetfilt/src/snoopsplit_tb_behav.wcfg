@@ -12,21 +12,17 @@
    </db_ref_list>
    <zoom_setting>
       <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="745000001fs"></ZoomEndTime>
-      <Cursor1Time time="745000000fs"></Cursor1Time>
+      <ZoomEndTime time="795000001fs"></ZoomEndTime>
+      <Cursor1Time time="695000000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="222"></NameColumnWidth>
-      <ValueColumnWidth column_width="82"></ValueColumnWidth>
+      <NameColumnWidth column_width="202"></NameColumnWidth>
+      <ValueColumnWidth column_width="66"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="47" />
+   <WVObjectSize size="42" />
    <wvobject type="logic" fp_name="/snoopsplit_tb/clk">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
-   </wvobject>
-   <wvobject fp_name="divider340" type="divider">
-      <obj_property name="label">SNOOPER OUT</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
    </wvobject>
    <wvobject type="array" fp_name="/snoopsplit_tb/wr_addr">
       <obj_property name="ElementShortName">wr_addr[9:0]</obj_property>
@@ -36,176 +32,161 @@
       <obj_property name="ElementShortName">wr_data[63:0]</obj_property>
       <obj_property name="ObjectShortName">wr_data[63:0]</obj_property>
    </wvobject>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/mem_ready">
+      <obj_property name="ElementShortName">mem_ready</obj_property>
+      <obj_property name="ObjectShortName">mem_ready</obj_property>
+   </wvobject>
    <wvobject type="logic" fp_name="/snoopsplit_tb/wr_en">
       <obj_property name="ElementShortName">wr_en</obj_property>
       <obj_property name="ObjectShortName">wr_en</obj_property>
-   </wvobject>
-   <wvobject fp_name="divider341" type="divider">
-      <obj_property name="label">SNOOPER FEEDBACK</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
    </wvobject>
    <wvobject type="logic" fp_name="/snoopsplit_tb/done">
       <obj_property name="ElementShortName">done</obj_property>
       <obj_property name="ObjectShortName">done</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/mem_ready">
-      <obj_property name="ElementShortName">mem_ready</obj_property>
-      <obj_property name="ObjectShortName">mem_ready</obj_property>
-   </wvobject>
-   <wvobject fp_name="divider342" type="divider">
-      <obj_property name="label">BPFVM A</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/snoopsplit_tb/wr_addr_left_split1">
-      <obj_property name="ElementShortName">wr_addr_left_split1[9:0]</obj_property>
-      <obj_property name="ObjectShortName">wr_addr_left_split1[9:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/snoopsplit_tb/wr_data_left_split1">
-      <obj_property name="ElementShortName">wr_data_left_split1[63:0]</obj_property>
-      <obj_property name="ObjectShortName">wr_data_left_split1[63:0]</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/wr_en_left_split1">
-      <obj_property name="ElementShortName">wr_en_left_split1</obj_property>
-      <obj_property name="ObjectShortName">wr_en_left_split1</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/done_left_split1">
-      <obj_property name="ElementShortName">done_left_split1</obj_property>
-      <obj_property name="ObjectShortName">done_left_split1</obj_property>
-   </wvobject>
    <wvobject type="logic" fp_name="/snoopsplit_tb/mem_ready_A">
       <obj_property name="ElementShortName">mem_ready_A</obj_property>
       <obj_property name="ObjectShortName">mem_ready_A</obj_property>
-   </wvobject>
-   <wvobject fp_name="divider343" type="divider">
-      <obj_property name="label">BPFVM B</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
    </wvobject>
    <wvobject type="logic" fp_name="/snoopsplit_tb/mem_ready_B">
       <obj_property name="ElementShortName">mem_ready_B</obj_property>
       <obj_property name="ObjectShortName">mem_ready_B</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/snoopsplit_tb/wr_addr_right_split1">
-      <obj_property name="ElementShortName">wr_addr_right_split1[9:0]</obj_property>
-      <obj_property name="ObjectShortName">wr_addr_right_split1[9:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/snoopsplit_tb/wr_data_right_split1">
-      <obj_property name="ElementShortName">wr_data_right_split1[63:0]</obj_property>
-      <obj_property name="ObjectShortName">wr_data_right_split1[63:0]</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/wr_en_right_split1">
-      <obj_property name="ElementShortName">wr_en_right_split1</obj_property>
-      <obj_property name="ObjectShortName">wr_en_right_split1</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/done_right_split1">
-      <obj_property name="ElementShortName">done_right_split1</obj_property>
-      <obj_property name="ObjectShortName">done_right_split1</obj_property>
-   </wvobject>
-   <wvobject fp_name="divider344" type="divider">
-      <obj_property name="label">BPFVM C</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/snoopsplit_tb/wr_addr_left_split2">
-      <obj_property name="ElementShortName">wr_addr_left_split2[9:0]</obj_property>
-      <obj_property name="ObjectShortName">wr_addr_left_split2[9:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/snoopsplit_tb/wr_data_left_split2">
-      <obj_property name="ElementShortName">wr_data_left_split2[63:0]</obj_property>
-      <obj_property name="ObjectShortName">wr_data_left_split2[63:0]</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/wr_en_left_split2">
-      <obj_property name="ElementShortName">wr_en_left_split2</obj_property>
-      <obj_property name="ObjectShortName">wr_en_left_split2</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/done_left_split2">
-      <obj_property name="ElementShortName">done_left_split2</obj_property>
-      <obj_property name="ObjectShortName">done_left_split2</obj_property>
-   </wvobject>
    <wvobject type="logic" fp_name="/snoopsplit_tb/mem_ready_C">
       <obj_property name="ElementShortName">mem_ready_C</obj_property>
       <obj_property name="ObjectShortName">mem_ready_C</obj_property>
-   </wvobject>
-   <wvobject fp_name="divider345" type="divider">
-      <obj_property name="label">BPFVM D</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/snoopsplit_tb/wr_addr_right_split2">
-      <obj_property name="ElementShortName">wr_addr_right_split2[9:0]</obj_property>
-      <obj_property name="ObjectShortName">wr_addr_right_split2[9:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/snoopsplit_tb/wr_data_right_split2">
-      <obj_property name="ElementShortName">wr_data_right_split2[63:0]</obj_property>
-      <obj_property name="ObjectShortName">wr_data_right_split2[63:0]</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/wr_en_right_split2">
-      <obj_property name="ElementShortName">wr_en_right_split2</obj_property>
-      <obj_property name="ObjectShortName">wr_en_right_split2</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/done_right_split2">
-      <obj_property name="ElementShortName">done_right_split2</obj_property>
-      <obj_property name="ObjectShortName">done_right_split2</obj_property>
    </wvobject>
    <wvobject type="logic" fp_name="/snoopsplit_tb/mem_ready_D">
       <obj_property name="ElementShortName">mem_ready_D</obj_property>
       <obj_property name="ObjectShortName">mem_ready_D</obj_property>
    </wvobject>
-   <wvobject fp_name="divider346" type="divider">
-      <obj_property name="label">CHOICES</obj_property>
+   <wvobject type="array" fp_name="/snoopsplit_tb/alt_choice">
+      <obj_property name="ElementShortName">alt_choice[3:0]</obj_property>
+      <obj_property name="ObjectShortName">alt_choice[3:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider334" type="divider">
+      <obj_property name="label">root</obj_property>
       <obj_property name="DisplayName">label</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/choice_split0">
-      <obj_property name="ElementShortName">choice_split0</obj_property>
-      <obj_property name="ObjectShortName">choice_split0</obj_property>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split0/do_select">
+      <obj_property name="ElementShortName">do_select</obj_property>
+      <obj_property name="ObjectShortName">do_select</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/choice_split1">
-      <obj_property name="ElementShortName">choice_split1</obj_property>
-      <obj_property name="ObjectShortName">choice_split1</obj_property>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split0/choice_internal">
+      <obj_property name="ElementShortName">choice_internal</obj_property>
+      <obj_property name="ObjectShortName">choice_internal</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/choice_split2">
-      <obj_property name="ElementShortName">choice_split2</obj_property>
-      <obj_property name="ObjectShortName">choice_split2</obj_property>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split0/mem_ready_left">
+      <obj_property name="ElementShortName">mem_ready_left</obj_property>
+      <obj_property name="ObjectShortName">mem_ready_left</obj_property>
    </wvobject>
-   <wvobject fp_name="divider347" type="divider">
-      <obj_property name="label">INTERNAL WIRES</obj_property>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split0/mem_ready_right">
+      <obj_property name="ElementShortName">mem_ready_right</obj_property>
+      <obj_property name="ObjectShortName">mem_ready_right</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider301" type="divider">
+      <obj_property name="label">intf A</obj_property>
       <obj_property name="DisplayName">label</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/snoopsplit_tb/wr_addr_left_split0">
-      <obj_property name="ElementShortName">wr_addr_left_split0[9:0]</obj_property>
-      <obj_property name="ObjectShortName">wr_addr_left_split0[9:0]</obj_property>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split1/done_on_prev_cycle">
+      <obj_property name="ElementShortName">done_on_prev_cycle</obj_property>
+      <obj_property name="ObjectShortName">done_on_prev_cycle</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/snoopsplit_tb/wr_data_left_split0">
-      <obj_property name="ElementShortName">wr_data_left_split0[63:0]</obj_property>
-      <obj_property name="ObjectShortName">wr_data_left_split0[63:0]</obj_property>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split1/wr_en_left_internal">
+      <obj_property name="ElementShortName">wr_en_left_internal</obj_property>
+      <obj_property name="ObjectShortName">wr_en_left_internal</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/mem_ready_left_split0">
-      <obj_property name="ElementShortName">mem_ready_left_split0</obj_property>
-      <obj_property name="ObjectShortName">mem_ready_left_split0</obj_property>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split1/choice_internal">
+      <obj_property name="ElementShortName">choice_internal</obj_property>
+      <obj_property name="ObjectShortName">choice_internal</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/wr_en_left_split0">
-      <obj_property name="ElementShortName">wr_en_left_split0</obj_property>
-      <obj_property name="ObjectShortName">wr_en_left_split0</obj_property>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split1/wr_en_left">
+      <obj_property name="ElementShortName">wr_en_left</obj_property>
+      <obj_property name="ObjectShortName">wr_en_left</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/done_left_split0">
-      <obj_property name="ElementShortName">done_left_split0</obj_property>
-      <obj_property name="ObjectShortName">done_left_split0</obj_property>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split1/done_left">
+      <obj_property name="ElementShortName">done_left</obj_property>
+      <obj_property name="ObjectShortName">done_left</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/snoopsplit_tb/wr_addr_right_split0">
-      <obj_property name="ElementShortName">wr_addr_right_split0[9:0]</obj_property>
-      <obj_property name="ObjectShortName">wr_addr_right_split0[9:0]</obj_property>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split1/mem_ready_left">
+      <obj_property name="ElementShortName">mem_ready_left</obj_property>
+      <obj_property name="ObjectShortName">mem_ready_left</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/snoopsplit_tb/wr_data_right_split0">
-      <obj_property name="ElementShortName">wr_data_right_split0[63:0]</obj_property>
-      <obj_property name="ObjectShortName">wr_data_right_split0[63:0]</obj_property>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split1/do_select">
+      <obj_property name="ElementShortName">do_select</obj_property>
+      <obj_property name="ObjectShortName">do_select</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/mem_ready_right_split0">
-      <obj_property name="ElementShortName">mem_ready_right_split0</obj_property>
-      <obj_property name="ObjectShortName">mem_ready_right_split0</obj_property>
+   <wvobject fp_name="divider306" type="divider">
+      <obj_property name="label">intf B</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/wr_en_right_split0">
-      <obj_property name="ElementShortName">wr_en_right_split0</obj_property>
-      <obj_property name="ObjectShortName">wr_en_right_split0</obj_property>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split1/wr_en_right">
+      <obj_property name="ElementShortName">wr_en_right</obj_property>
+      <obj_property name="ObjectShortName">wr_en_right</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/snoopsplit_tb/done_right_split0">
-      <obj_property name="ElementShortName">done_right_split0</obj_property>
-      <obj_property name="ObjectShortName">done_right_split0</obj_property>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split1/done_right">
+      <obj_property name="ElementShortName">done_right</obj_property>
+      <obj_property name="ObjectShortName">done_right</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split1/mem_ready_right">
+      <obj_property name="ElementShortName">mem_ready_right</obj_property>
+      <obj_property name="ObjectShortName">mem_ready_right</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider311" type="divider">
+      <obj_property name="label">intf C</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split2/wr_en_left">
+      <obj_property name="ElementShortName">wr_en_left</obj_property>
+      <obj_property name="ObjectShortName">wr_en_left</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split2/done_left">
+      <obj_property name="ElementShortName">done_left</obj_property>
+      <obj_property name="ObjectShortName">done_left</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split2/mem_ready_left">
+      <obj_property name="ElementShortName">mem_ready_left</obj_property>
+      <obj_property name="ObjectShortName">mem_ready_left</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider321" type="divider">
+      <obj_property name="label">intf D</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split2/wr_en_right">
+      <obj_property name="ElementShortName">wr_en_right</obj_property>
+      <obj_property name="ObjectShortName">wr_en_right</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split2/done_right">
+      <obj_property name="ElementShortName">done_right</obj_property>
+      <obj_property name="ObjectShortName">done_right</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/split2/mem_ready_right">
+      <obj_property name="ElementShortName">mem_ready_right</obj_property>
+      <obj_property name="ObjectShortName">mem_ready_right</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider124" type="divider">
+      <obj_property name="label">QDS</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/any_out">
+      <obj_property name="ElementShortName">any_out</obj_property>
+      <obj_property name="ObjectShortName">any_out</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/en_A">
+      <obj_property name="ElementShortName">en_A</obj_property>
+      <obj_property name="ObjectShortName">en_A</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/en_B">
+      <obj_property name="ElementShortName">en_B</obj_property>
+      <obj_property name="ObjectShortName">en_B</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/en_C">
+      <obj_property name="ElementShortName">en_C</obj_property>
+      <obj_property name="ObjectShortName">en_C</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/snoopsplit_tb/en_D">
+      <obj_property name="ElementShortName">en_D</obj_property>
+      <obj_property name="ObjectShortName">en_D</obj_property>
    </wvobject>
 </wave_config>

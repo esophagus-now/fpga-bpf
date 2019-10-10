@@ -5,16 +5,17 @@ proc init_gui { IPINST } {
   set Page_0 [ipgui::add_page $IPINST -name "Page 0"]
   ipgui::add_param $IPINST -name "AXI_ADDR_WIDTH" -parent ${Page_0}
   set BASEADDR [ipgui::add_param $IPINST -name "BASEADDR" -parent ${Page_0}]
-  set_property tooltip {Please set this equal to the base address set in the Address Editor} ${BASEADDR}
+  set_property tooltip {Please set this equal to the value used in the Address Editor} ${BASEADDR}
   set CODE_ADDR_WIDTH [ipgui::add_param $IPINST -name "CODE_ADDR_WIDTH" -parent ${Page_0}]
-  set_property tooltip {The number of instructions is 2 to the power of this number} ${CODE_ADDR_WIDTH}
-  ipgui::add_param $IPINST -name "N" -parent ${Page_0}
+  set_property tooltip {The instruction capacity is 2 to the power of this number} ${CODE_ADDR_WIDTH}
+  set N [ipgui::add_param $IPINST -name "N" -parent ${Page_0}]
+  set_property tooltip {Increase this if your filter code is taking a long time to return} ${N}
   set PACKET_BYTE_ADDR_WIDTH [ipgui::add_param $IPINST -name "PACKET_BYTE_ADDR_WIDTH" -parent ${Page_0}]
   set_property tooltip {The number of bytes per packet buffer is 2 to the power of this number} ${PACKET_BYTE_ADDR_WIDTH}
   set PESSIMISTIC [ipgui::add_param $IPINST -name "PESSIMISTIC" -parent ${Page_0}]
-  set_property tooltip {Some registers have been added in choice locations. These significantly ease timing, but slightly decrease performance. You could always put more filters in parallel if this is an issue} ${PESSIMISTIC}
+  set_property tooltip {Slightly lowers performance, but greatly eases timing. You will probably need this above 150 MHz (and consider using an AXI Stream Register slice on the forwarder output)} ${PESSIMISTIC}
   set SNOOP_FWD_ADDR_WIDTH [ipgui::add_param $IPINST -name "SNOOP_FWD_ADDR_WIDTH" -parent ${Page_0}]
-  set_property tooltip {This parameter will change the width of the snooper and forwarder data wires} ${SNOOP_FWD_ADDR_WIDTH}
+  set_property tooltip {The width of the snooper and forwarder is 2 to the power of (byte address width - this number) in bytes} ${SNOOP_FWD_ADDR_WIDTH}
 
 
 }

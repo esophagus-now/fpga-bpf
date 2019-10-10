@@ -8,11 +8,42 @@ reads at (possibly) not-word-aligned address. I decided not to parameterize the
 data widths since it's a very specific case (but the address widths are still
 parameters). 
 
+REGULAR MODE
 Schedule (II=1):
 C0: (Input: packmem_rd_en, transfer_sz, byte_rd_addr; Output: word_rd_addra)
 Note that the bigword input in C1 is the read data from the packet memory 
 
-C1: (Input: bigowrd; Output: resized_mem_data)
+C1: (Input: bigword; Output: resized_mem_data)
+
+PESSIMISTIC ADAPTER MODE
+Schedule (II=1):
+C0: (Input: packmem_rd_en, transfer_sz, byte_rd_addr; Output: word_rd_addra)
+Note that the bigword input in C1 is the read data from the packet memory 
+
+C1: (Input: bigword; Output: none)
+
+C2: (Input: none; Output: resized_mem_data)
+
+PESSIMISTIC BRAM MODE
+Schedule (II=1):
+C0: (Input: packmem_rd_en, transfer_sz, byte_rd_addr; Output: word_rd_addra)
+Note that the bigword input in C2 is the read data from the packet memory 
+
+C1: (Input: none; Output: none)
+
+C2: (Input: bigword; Output: resized_mem_data)
+
+PESSMISTIC MODE
+Schedule (II=1):
+C0: (Input: packmem_rd_en, transfer_sz, byte_rd_addr; Output: word_rd_addra)
+Note that the bigword input in C2 is the read data from the packet memory 
+
+C1: (Input: none; Output: none)
+
+C2: (Input: bigword; Output: none)
+
+C3: (Input: none; Output: resized_mem_data)
+
 
 */
 

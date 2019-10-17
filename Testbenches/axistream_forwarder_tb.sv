@@ -58,7 +58,11 @@ always @(posedge clk) begin
 		forwarder_rd_data <= packet[forwarder_rd_addr];
 end
 
-axistream_forwarder DUT (
+axistream_forwarder #(
+	.DATA_WIDTH(64),
+	.ADDR_WIDTH(`ADDR_WIDTH),
+	.PESSIMISTIC(1)
+) DUT (
 	.clk(clk),
 	
 	//AXI Stream interface

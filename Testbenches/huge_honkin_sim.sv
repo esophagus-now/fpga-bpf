@@ -206,6 +206,7 @@ initial begin
 end
 
 always @(posedge clk) begin
+	TREADY <= $random;
 	if (snooper_done) packets_left++;
 	if (PF.VMs[0].the_VM.cpu_rej) packets_left--;
 	if (forwarder_done) packets_left--;

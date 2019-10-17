@@ -21,7 +21,7 @@ module axistream_forwarder # (parameter
 	//AXI Stream interface
 	output wire [DATA_WIDTH-1:0] TDATA, //Registered in another module
 	output reg TVALID = 0,
-	output reg TLAST,
+	output reg TLAST = 0,
 	input wire TREADY,	
 	
 	//Interface to packetmem
@@ -35,6 +35,18 @@ module axistream_forwarder # (parameter
 
 wire ready_for_forwarder_internal;
 wire [`PLEN_WIDTH-1:0] len_to_forwarder_internal;
+
+
+reg [DATA_WIDTH-1:0] TDATA_r = 0;
+always @(posedge clk) TDATA_r = TDATA;
+reg TLAST_r = 0;
+always @(posedge clk) TLAST_r = TLAST;
+reg TREADY_r = 0;
+always @(posedge clk) TREADY_r = TREADY;
+
+wire still_hangin_on;
+assign still_hangin_on = TLAST_r && !TREADY_r;
+
 ////////////////////////////////////////
 ////////// PESSIMISTIC MODE ////////////
 ////////////////////////////////////////
@@ -48,7 +60,7 @@ if (PESSIMISTIC) begin
 	//So, if done is 1, we can just force this value to be zero.
 	reg ready_for_forwarder_r = 0;
 	always @(posedge clk) ready_for_forwarder_r <= ready_for_forwarder && !forwarder_done;
-	assign ready_for_forwarder_internal = ready_for_forwarder_r;
+	assign ready_for_forwarder_internal = ready_for_forwarder_r && !still_hangin_on;
 	reg [`PLEN_WIDTH-1:0] len_to_forwarder_r;
 	always @(posedge clk) len_to_forwarder_r <= len_to_forwarder;
 	assign len_to_forwarder_internal = len_to_forwarder_r;
@@ -57,7 +69,7 @@ end
 ////////// OPTIMISTIC MODE ////////////
 ///////////////////////////////////////
 else begin
-	assign ready_for_forwarder_internal = ready_for_forwarder;
+	assign ready_for_forwarder_internal = ready_for_forwarder && !still_hangin_on;
 	assign len_to_forwarder_internal = len_to_forwarder;
 end
 endgenerate
@@ -67,11 +79,15 @@ endgenerate
 wire [ADDR_WIDTH-1:0] maxaddr;
 assign maxaddr = len_to_forwarder_internal[`PLEN_WIDTH-1 -: ADDR_WIDTH];
 
-assign TDATA = forwarder_rd_data; 
+//This logic keeps getting messier as I discover more corner cases...
+//Essentially, once we get to the end of the packet, we need to be
+//able to hold the outputs constant until the slave is ready
+assign TDATA = still_hangin_on ? TDATA_r : forwarder_rd_data; 
 
 wire TLAST_next;
-assign TLAST_next = (forwarder_rd_addr >= maxaddr && forwarder_rd_en);
-//The next flit in TDATA is the last, in this case 
+assign TLAST_next = (forwarder_rd_addr >= maxaddr && forwarder_rd_en) //The next flit in TDATA is the last, in this case 
+					|| (TLAST && !TREADY); //This means TLAST has not been read yet
+
 
 wire [ADDR_WIDTH-1:0] next_addr;
 assign next_addr = (ready_for_forwarder_internal && forwarder_rd_en) ? ((forwarder_rd_addr >= maxaddr) ? 0 : forwarder_rd_addr+1) : forwarder_rd_addr;
@@ -93,7 +109,8 @@ assign next_addr = (ready_for_forwarder_internal && forwarder_rd_en) ? ((forward
 // (A + B')(B + B') = 	(Distribute OR over AND)
 // A + B'
 // This is equal to, ready_for_forwarder && (!TVALID || (TVALID && TREADY))
-assign forwarder_rd_en = (ready_for_forwarder_internal && (TREADY || !TVALID) && !TLAST);
+// Special case:
+assign forwarder_rd_en = ready_for_forwarder_internal && (forwarder_rd_addr <= maxaddr) && (TREADY || !TVALID) && !TLAST;
 
 wire TVALID_next;
 //I should do another truth table:
@@ -119,7 +136,7 @@ always @(posedge clk) begin
 	TLAST <= TLAST_next;
 end
 
-assign forwarder_done = TLAST && TVALID && ready_for_forwarder_internal;
+assign forwarder_done = TLAST && TVALID && TREADY;
 endmodule
 
 `undef PLEN_WIDTH

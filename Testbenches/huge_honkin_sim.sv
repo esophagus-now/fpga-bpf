@@ -20,6 +20,7 @@ correctly accepted/rejected, correctly forwarded out, and to get an idea on perf
 `define PACKET_ADDR_WIDTH (`PACKET_BYTE_ADDR_WIDTH - 4)
 `define PACKET_DATA_WIDTH 128
 `define USE_PESSIMISTIC 1
+`define N 8
 
 module huge_honkin_sim();
 reg clk;
@@ -205,10 +206,13 @@ initial begin
 	end
 end
 
+genvar i;
+for (i = 0; i < `N; i = i + 1) begin
+	always @(posedge clk) if (PF.VMs[i].the_VM.cpu_rej) packets_left--;
+end
 always @(posedge clk) begin
 	TREADY <= $random;
 	if (snooper_done) packets_left++;
-	if (PF.VMs[0].the_VM.cpu_rej) packets_left--;
 	if (forwarder_done) packets_left--;
 	if (packets_left == 0 && $feof(fd)) ->done_processing;
 end
@@ -217,7 +221,7 @@ parallel_packetfilts # (
     .CODE_ADDR_WIDTH(`CODE_ADDR_WIDTH), // codemem depth = 2^CODE_ADDR_WIDTH
     .PACKET_BYTE_ADDR_WIDTH(`PACKET_BYTE_ADDR_WIDTH), // packetmem depth = 2^PACKET_BYTE_ADDR_WIDTH
     .SNOOP_FWD_ADDR_WIDTH(`PACKET_ADDR_WIDTH),
-    .N(8),
+    .N(`N),
     .PESSIMISTIC(`USE_PESSIMISTIC)
 ) PF (
 	.rst(rst),

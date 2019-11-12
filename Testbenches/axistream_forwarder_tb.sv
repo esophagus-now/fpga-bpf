@@ -8,7 +8,7 @@ to specify test signals.
 
 module axistream_forwarder_tb();
 reg [63:0] packet [0:9];
-`define packet_len 10
+`define packet_len 1
 `define ADDR_WIDTH 10
 integer fd;
 

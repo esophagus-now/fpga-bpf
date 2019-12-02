@@ -1,4 +1,4 @@
-This project has moved: https://github.com/UofT-HPRC
+This project has moved: https://github.com/UofT-HPRC/fpga-bpf
 
 # fpga-bpf
 
